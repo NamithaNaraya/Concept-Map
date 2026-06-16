@@ -4,108 +4,85 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Concept Map Explorer — French CEFR Reference</title>
-<link rel="stylesheet" href="concepts.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="concepts.css"> <!-- Old CSS for fallback/custom things -->
+<link rel="stylesheet" href="concepts-ui.css"> <!-- New CSS -->
+<link rel="icon" href="data:,"> <!-- Prevent favicon 404 -->
 </head>
 <body>
 
-
-<!-- HEADER -->
-<header>
-  <div class="brand">
-    <div class="brand-icon">Fr</div>
-    <div>
-      <h1>Concept Map Explorer</h1>
-      <div class="sub">French CEFR · A1–B2</div>
-    </div>
-  </div>
-  <div class="header-sep"></div>
-  <div class="header-tabs" id="headerTabs" style="display:none">
-    <button class="header-tab active" data-tab="table">📋 Table</button>
-    <button class="header-tab" data-tab="network">🕸 Network</button>
-    <button class="header-tab" data-tab="radial">🌐 Radial</button>
-    <button class="header-tab" data-tab="stats">📊 Stats</button>
-  </div>
-  <div class="header-spacer"></div>
-  <div class="file-area">
-    <button class="btn" id="fetchBtn" onclick="loadData()">⚡ Fetch Data from Backend</button>
-    
-    <button class="btn" id="exportBtn" disabled>⬇ Export</button>
-    <button class="btn" onclick="showHelp()">❓ Help</button>
-    <span id="statusBadge">No file loaded</span>
-  </div>
-</header>
-
-<!-- TOOLTIP -->
-<div id="tooltip"></div>
-
-<!-- NOTIFICATION -->
-<div id="notification"></div>
-
-<!-- HELP MODAL -->
-<div id="helpModal">
-  <div class="help-box">
-    <h2>📖 How to use this Explorer</h2>
-    <div class="help-section">
-      <h3>🚀 Getting Started</h3>
-      <p>Click <strong>Fetch Data from Backend</strong> to automatically download the <code>concept_map_for_lesson_generation.json</code> file from the server.</p>
-    </div>
-    <div class="help-section">
-      <h3>📋 Table View</h3>
-      <ul>
-        <li>Filter by chapter, CEFR level, kind, and more using the left sidebar</li>
-        <li>Click any row to open the detail panel on the right</li>
-        <li>Click column headers to sort</li>
-        <li>Use the search box for instant text filtering</li>
-      </ul>
-    </div>
-    <div class="help-section">
-      <h3>🕸 Network View</h3>
-      <ul>
-        <li><strong>Click a node</strong> to see its full details in the right panel</li>
-        <li><strong>Drag nodes</strong> to rearrange the graph</li>
-        <li><strong>Scroll/pinch</strong> to zoom; drag background to pan</li>
-        <li><strong>Path Finder</strong>: Set a "From" and "To" node to find the shortest connection path between them</li>
-        <li><strong>Hop Navigator</strong>: Click a node, then use "Set as From / To" in the panel to find paths</li>
-        <li>Use the left sidebar filters to reduce nodes shown</li>
-      </ul>
-    </div>
-    <div class="help-section">
-      <h3>🌐 Radial View</h3>
-      <ul>
-        <li>See concepts arranged in a sunburst / radial layout by chapter or level</li>
-        <li>Click segments to drill in</li>
-      </ul>
-    </div>
-    <div class="help-section">
-      <h3>📊 Stats View</h3>
-      <ul>
-        <li>Corpus-wide statistics: distribution by chapter, level coverage, asterisk rates</li>
-      </ul>
-    </div>
-    <div class="help-close">
-      <button class="btn primary" onclick="closeHelp()">Got it</button>
-    </div>
-  </div>
-</div>
-
-<!-- APP SHELL -->
 <div id="appShell">
+  
+  <!-- ICON RAIL -->
+  <nav id="rail" style="display:none">
+    <div class="logo"></div>
+    <button class="railbtn active" data-tab="network" onclick="switchView('network', this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+      <span class="lbl">Network View</span>
+    </button>
+    <button class="railbtn" data-tab="table" onclick="switchView('table', this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+      <span class="lbl">Table View</span>
+    </button>
+    <button class="railbtn" data-tab="radial" onclick="switchView('radial', this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><line x1="21.17" y1="8" x2="12" y2="8"></line><line x1="3.95" y1="6.06" x2="8.54" y2="14"></line><line x1="10.88" y1="21.94" x2="15.46" y2="14"></line></svg>
+      <span class="lbl">Radial View</span>
+    </button>
+    <button class="railbtn" data-tab="stats" onclick="switchView('stats', this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      <span class="lbl">Stats</span>
+    </button>
+    <div class="spacer"></div>
+    <button class="railbtn" onclick="showHelp()">
+      <span style="font-weight:bold">?</span>
+      <span class="lbl">Help</span>
+    </button>
+  </nav>
 
+  <!-- PANEL -->
+  <aside id="panel" style="display:none">
+    <div class="phead">
+      <h1>Explore</h1>
+      <p>French CEFR · A1–B2</p>
+      <div class="statchips">
+        <div class="statchip"><b id="statusBadgeCount">0</b> concepts</div>
+        <button class="mini" id="fetchBtn" onclick="loadData()">Fetch</button>
+      </div>
+    </div>
+    <div class="pbody">
+      <!-- Search -->
+      <div class="searchwrap block">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="search" id="searchBox" placeholder="Search concepts..." oninput="setSearch(this.value)">
+      </div>
+
+      <!-- Filters -->
+      <div id="sidebarContent"></div>
+    </div>
+  </aside>
+
+  <!-- NOTIFICATION -->
+  <div id="notification"></div>
+  
   <!-- EMPTY STATE -->
-  <div id="emptyState" style="display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:40px; text-align:center;">
-    <div style="font-size:48px">🗺️</div>
-    <h2 style="font-size:26px">French CEFR Concept Explorer</h2>
-    <p style="max-width:480px; color:var(--muted); line-height:1.7">
+  <div id="emptyState" class="empty-state-container">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+    
+    <div style="font-size:56px; z-index: 1; margin-bottom: -10px;">🗺️</div>
+    <h2 style="font-size:36px; z-index: 1; font-family: var(--serif); font-weight: 800; letter-spacing: -0.5px;">French CEFR Concept Explorer</h2>
+    <p style="max-width:520px; color:var(--muted2); line-height:1.7; z-index: 1; font-size: 15px;">
       Explore 1,150 concepts across 9 chapters and 4 CEFR levels (A1–B2) with interactive network graphs, path finding, filters, and rich detail panels.
     </p>
     
-      <div class="drop-zone" id="dropZone" style="cursor:default; border: none; background: transparent; display: flex; justify-content: center; align-items: center;">
-        <button id="fetchBtnCenter" onclick="loadData()" style="background-color: var(--accent); color: white; border: none; border-radius: 8px; padding: 16px 32px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 111, 212, 0.3); transition: all 0.2s ease; display: flex; align-items: center; gap: 10px;">
-          <span style="font-size:24px">⚡</span> Fetch Data from Backend
-        </button>
-      </div>
+    <div class="drop-zone" id="dropZone" style="z-index: 1; cursor:default; border: none; background: transparent; display: flex; justify-content: center; align-items: center; margin-top: 10px;">
+      <button id="fetchBtnCenter" onclick="loadData()" class="btn-glow-primary">
+        <span style="font-size:24px">⚡</span> Fetch Data from Backend
+      </button>
+    </div>
 
-    <div class="features-grid">
+    <div class="features-grid" style="z-index: 1; margin-top: 30px;">
       <div class="feature-card"><div class="fc-icon">🕸</div><h4>Network Graph</h4><p>Interactive force-directed graph with 1,408 cross-chapter links.</p></div>
       <div class="feature-card"><div class="fc-icon">🔍</div><h4>Path Finder</h4><p>Click any two nodes to discover the shortest hop path between them.</p></div>
       <div class="feature-card"><div class="fc-icon">🎛</div><h4>Rich Filters</h4><p>Filter by chapter, level, kind, asterisked status, links, and more.</p></div>
@@ -115,21 +92,51 @@
     </div>
   </div>
 
-  <!-- SIDEBAR -->
-  <div id="sidebar" style="display:none">
-    <div class="sidebar-head">
-      <h2>Filters</h2>
-      <button class="clear-btn" onclick="clearAllFilters()">Clear all</button>
+  <!-- MAIN STAGE -->
+  <main id="mainContent" style="display:none">
+    
+    <!-- TOPBAR -->
+    <div id="topbar">
+      <button class="iconbtn glass" onclick="togglePanel()" title="Toggle Panel">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+      </button>
+
+      <div class="seg glass" id="headerTabs">
+        <!-- Kept the id for compatibility, though we'll update the JS to handle these buttons -->
+        <button class="header-tab active" data-tab="network">Network</button>
+        <button class="header-tab" data-tab="table">Table</button>
+        <button class="header-tab" data-tab="radial">Radial</button>
+        <button class="header-tab" data-tab="stats">Stats</button>
+      </div>
+      
+      <!-- Export button moved to topbar -->
+      <button class="b glass" id="exportBtn" disabled style="padding: 6px 12px; margin-left: 10px;">Export</button>
     </div>
-    <div id="sidebarContent"></div>
-    <div class="result-count" id="resultCount">—</div>
-  </div>
 
-  <!-- MAIN CONTENT -->
-  <div id="mainContent" style="display:none">
 
-    <!-- TABLE VIEW -->
-    <div class="view active" id="tableView">
+
+    <!-- VIEWS -->
+    <div class="view active" id="networkView">
+      <canvas id="networkCanvas"></canvas>
+
+      <!-- Zoom Controls -->
+      <div id="zoomctl">
+        <button class="iconbtn glass" onclick="zoomNet(1.3)">+</button>
+        <button class="iconbtn glass" onclick="zoomNet(0.77)">−</button>
+        <button class="iconbtn glass" onclick="resetZoomNet()">⊙</button>
+        <button class="iconbtn glass" onclick="runLayout()">⟳</button>
+      </div>
+
+      <!-- Detail Panel -->
+      <div id="detail">
+        <button class="x" onclick="closeNodeInfo()">×</button>
+        <div id="detailBody">
+          <!-- Content populated by concepts.js -->
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="tableView">
       <div class="table-toolbar">
         <span class="group-label">Sort by</span>
         <select class="sort-select" id="sortSelect" onchange="setSortFromDropdown()">
@@ -159,103 +166,77 @@
       <div class="pager" id="pager"></div>
     </div>
 
-    <!-- NETWORK VIEW -->
-    <div class="view" id="networkView" style="position:relative; overflow:hidden;">
-      <canvas id="networkCanvas"></canvas>
-
-      <!-- Toggle button -->
-      <button class="net-drawer-toggle" id="netDrawerToggle" onclick="toggleNetDrawer()">⚙ Controls</button>
-
-      <!-- Right-side drawer -->
-      <div class="net-drawer" id="netDrawer">
-        <div class="net-drawer-head">
-          <h2>Network Controls</h2>
-          <button class="net-drawer-close" onclick="toggleNetDrawer()">✕</button>
-        </div>
-        <div class="net-drawer-body">
-          <h3>View</h3>
-          <div class="zoom-btns">
-            <button onclick="zoomNet(1.3)" title="Zoom In">+</button>
-            <button onclick="zoomNet(0.77)" title="Zoom Out">−</button>
-            <button onclick="resetZoomNet()" title="Reset">⊙</button>
-            <button onclick="runLayout()" title="Re-layout">⟳</button>
-            <button onclick="unpinAll()" title="Unpin All" style="width:auto;padding:0 8px;font-size:11px;">Unpin All</button>
-          </div>
-          <label><input type="checkbox" id="showLabels" checked onchange="redrawNet()"> Labels</label>
-          <label><input type="checkbox" id="showEdges" checked onchange="redrawNet()"> Edges</label>
-          <label>
-            Node size
-            <input type="range" id="nodeSizeRange" min="4" max="22" value="10" oninput="redrawNet()">
-          </label>
-          <label>
-            Charge
-            <input type="range" id="chargeRange" min="20" max="200" value="80" oninput="updateCharge()">
-          </label>
-          <div class="net-legend" id="netLegend"></div>
-
-          <hr class="net-toolbar-divider">
-
-          <h3>🔍 Path Finder</h3>
-          <div class="path-inputs">
-            <button class="path-node-btn" id="pathFromBtn" onclick="setPathMode('from')">
-              <span class="label" id="pathFromLabel">Click to set start node</span>
-              <span class="badge">FROM</span>
-            </button>
-            <button class="path-node-btn" id="pathToBtn" onclick="setPathMode('to')">
-              <span class="label" id="pathToLabel">Click to set end node</span>
-              <span class="badge" style="background:var(--accent2)">TO</span>
-            </button>
-          </div>
-          <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <button class="btn primary" style="flex:1;font-size:11px;padding:6px;" onclick="findPath()">Find Path</button>
-            <button class="btn" style="font-size:11px;padding:6px;" onclick="clearPath()">✕ Clear</button>
-          </div>
-          <div class="path-result" id="pathResult" style="display:none"></div>
-        </div>
-      </div>
-
-      <!-- Node Info Panel -->
-      <div id="nodeInfoPanel">
-        <button class="nip-close" onclick="closeNodeInfo()">✕</button>
-        <div class="nip-header">
-          <div class="nip-title" id="nipTitle">—</div>
-          <div class="nip-code" id="nipCode">—</div>
-          <div class="nip-badges" id="nipBadges"></div>
-        </div>
-        <div id="nodeInfoBody"></div>
-        <div class="nip-actions">
-          <button class="btn path-from-btn" onclick="setCurrentAsPathFrom()">Set as FROM</button>
-          <button class="btn path-to-btn" onclick="setCurrentAsPathTo()">Set as TO</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- RADIAL VIEW -->
     <div class="view" id="radialView">
-      <div class="radial-toolbar">
-        <strong style="font-size:12px">Radial Layout:</strong>
-        <button class="radial-mode-btn active" data-mode="chapter" onclick="setRadialMode('chapter',this)">By Chapter</button>
-        <button class="radial-mode-btn" data-mode="level" onclick="setRadialMode('level',this)">By Level</button>
-        <button class="radial-mode-btn" data-mode="kind" onclick="setRadialMode('kind',this)">By Kind</button>
-        <button class="radial-mode-btn" data-mode="family" onclick="setRadialMode('family',this)">By Family</button>
-        <span style="color:var(--muted);font-size:11px">· Click segments to highlight · Hover for details</span>
+      <div class="radial-toolbar" style="margin-left: 20px; display:flex; align-items:center; gap: 12px; padding: 12px 0;">
+        <strong style="font-size:12px; color:var(--ink-2)">Radial Layout:</strong>
+        <div class="seg" style="background:var(--panel-2); border:1px solid var(--line);">
+          <button class="radial-mode-btn active" data-mode="chapter" onclick="setRadialMode('chapter',this)">By Chapter</button>
+          <button class="radial-mode-btn" data-mode="level" onclick="setRadialMode('level',this)">By Level</button>
+          <button class="radial-mode-btn" data-mode="kind" onclick="setRadialMode('kind',this)">By Kind</button>
+          <button class="radial-mode-btn" data-mode="family" onclick="setRadialMode('family',this)">By Family</button>
+        </div>
       </div>
-      <div id="radialCanvas" style="flex:1; position:relative;">
+      <div id="radialCanvas" style="flex:1; position:relative; width: 100%; height: 100%;">
         <canvas id="radialCanvasEl" style="display:block;"></canvas>
         <div id="radialTooltip" style="display:none;position:absolute;background:var(--ink);color:#fff;padding:7px 13px;border-radius:8px;font-size:12px;pointer-events:none;"></div>
       </div>
     </div>
 
-    <!-- STATS VIEW -->
     <div class="view" id="statsView">
       <div id="statsContent" style="padding:24px; max-width:900px; overflow-y:auto; flex:1;"></div>
     </div>
 
-  </div><!-- end mainContent -->
+  </main>
+</div>
 
-</div><!-- end appShell -->
+<!-- TOOLTIP -->
+<div id="tooltip"></div>
 
+<!-- HELP MODAL -->
+<div id="helpModal" style="display:none;">
+  <div class="help-box">
+    <h2>📖 How to use this Explorer</h2>
+    <div class="help-section">
+      <h3>🚀 Getting Started</h3>
+      <p>Click <strong>Fetch Data from Backend</strong> to automatically download the <code>concept_map_for_lesson_generation.json</code> file from the server.</p>
+    </div>
+    <div class="help-close">
+      <button class="btn primary" onclick="closeHelp()">Got it</button>
+    </div>
+  </div>
+</div>
 
 <script src="concepts.js"></script>
+<script>
+  function togglePanel() {
+    document.getElementById('panel').classList.toggle('collapsed');
+  }
+  function switchView(tab, btn) {
+    document.querySelectorAll('.railbtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.header-tab').forEach(b => b.classList.remove('active'));
+    
+    if(btn.classList.contains('railbtn')) {
+      btn.classList.add('active');
+      document.querySelector(`.header-tab[data-tab="${tab}"]`)?.classList.add('active');
+    } else {
+      btn.classList.add('active');
+      document.querySelector(`.railbtn[data-tab="${tab}"]`)?.classList.add('active');
+    }
+    
+    // Original switchTab logic will handle the rest
+    if (typeof switchTab === 'function') switchTab(tab);
+  }
+
+  // Intercept the original header tab clicks
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.header-tab').forEach(btn => {
+      // Remove inline click from original if it existed, add listener
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        switchView(this.dataset.tab, this);
+      });
+    });
+  });
+</script>
 </body>
 </html>

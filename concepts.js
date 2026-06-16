@@ -4,10 +4,10 @@
 ============================================================ */
 const LEVELS = ["A1","A2","B1","B2"];
 const LEVEL_COLOR = {
-  A1: '#3f7d5c',
-  A2: '#5a8f3f',
-  B1: '#c08a2e',
-  B2: '#b3502d'
+  A1: '#10b981', // Emerald
+  A2: '#84cc16', // Lime
+  B1: '#f59e0b', // Amber
+  B2: '#ef4444'  // Red
 };
 const CHAPTER_TITLES = {
   ch1:"1 · Orientation", ch2:"2 · CEFR Descriptors", ch3:"3 · Functions",
@@ -15,26 +15,26 @@ const CHAPTER_TITLES = {
   ch8:"8 · Orthography", ch9:"9 · Sociocultural", ch10:"10 · Strategies"
 };
 const CHAPTER_COLOR = {
-  ch1: '#3b6fd4',
-  ch2: '#2aa39a',
-  ch3: '#e8743b',
-  ch4: '#9b59b6',
-  ch5: '#d94f70',
-  ch6: '#27955a',
-  ch8: '#c39b1e',
-  ch9: '#5d6bd0',
-  ch10: '#0d99a8'
+  ch1: '#38bdf8', // Light Blue
+  ch2: '#2dd4bf', // Teal
+  ch3: '#fb923c', // Orange
+  ch4: '#c084fc', // Purple
+  ch5: '#fb7185', // Rose
+  ch6: '#4ade80', // Green
+  ch8: '#facc15', // Yellow
+  ch9: '#818cf8', // Indigo
+  ch10: '#22d3ee' // Cyan
 };
 const CHAPTER_GLOW = {
-  ch1: "rgba(59, 111, 212, 0.4)",
-  ch2: "rgba(42, 163, 154, 0.4)",
-  ch3: "rgba(232, 116, 59, 0.4)",
-  ch4: "rgba(155, 89, 182, 0.4)",
-  ch5: "rgba(217, 79, 112, 0.4)",
-  ch6: "rgba(39, 149, 90, 0.4)",
-  ch8: "rgba(195, 155, 30, 0.4)",
-  ch9: "rgba(93, 107, 208, 0.4)",
-  ch10: "rgba(13, 153, 168, 0.4)"
+  ch1: "rgba(56, 189, 248, 0.8)",
+  ch2: "rgba(45, 212, 191, 0.8)",
+  ch3: "rgba(251, 146, 60, 0.8)",
+  ch4: "rgba(192, 132, 252, 0.8)",
+  ch5: "rgba(251, 113, 133, 0.8)",
+  ch6: "rgba(74, 222, 128, 0.8)",
+  ch8: "rgba(250, 204, 21, 0.8)",
+  ch9: "rgba(129, 140, 248, 0.8)",
+  ch10: "rgba(34, 211, 238, 0.8)"
 };
 const KIND_COLOR = {
   leaf: "#3b6fd4",
@@ -131,16 +131,14 @@ function countLinks(obj) {
 }
 
 function initUI() {
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('sidebar').style.display = '';
-  document.getElementById('mainContent').style.display = '';
-  document.getElementById('headerTabs').style.display = '';
-  document.getElementById('statusBadge').textContent = `${RECORDS.length} concepts`;
-  document.getElementById('statusBadge').classList.add('loaded');
-  document.getElementById('exportBtn').disabled = false;
-  buildSidebar();
-  renderTable();
-  buildNetworkData();
+  const emptySt = document.getElementById('emptyState'); if(emptySt) emptySt.style.display = 'none';
+  const rail = document.getElementById('rail'); if(rail) rail.style.display = 'flex';
+  const panel = document.getElementById('panel'); if(panel) panel.style.display = '';
+  const mainC = document.getElementById('mainContent'); if(mainC) mainC.style.display = '';
+  const hTabs = document.getElementById('headerTabs'); if(hTabs) hTabs.style.display = '';
+  const sbc = document.getElementById('statusBadgeCount'); if(sbc) sbc.textContent = RECORDS.length;
+  const exBtn = document.getElementById('exportBtn'); if(exBtn) exBtn.disabled = false;
+  clearAllFilters();
   buildStatsView();
 }
 
@@ -180,7 +178,7 @@ function buildSidebar() {
       <div class="filter-body" id="fs-chapters">
         ${Object.entries(CHAPTER_TITLES).filter(([ch])=>chapterCounts[ch]).map(([ch,title])=>`
           <label class="filter-row">
-            <input type="checkbox" onchange="toggleFilter('chapters','${ch}',this.checked)">
+            <input type="checkbox" onchange="toggleFilter('chapters','${ch}',this.checked)" ${filters.chapters.has(ch) ? 'checked' : ''}>
             <span style="width:10px;height:10px;border-radius:50%;background:${CHAPTER_COLOR[ch]};flex-shrink:0;display:inline-block;"></span>
             <span class="fr-label" style="font-size:11.5px">${title}</span>
             <span class="fr-count">${chapterCounts[ch]||0}</span>
@@ -193,7 +191,7 @@ function buildSidebar() {
       <div class="filter-body" id="fs-levels">
         ${LEVELS.map(l=>`
           <label class="filter-row">
-            <input type="checkbox" onchange="toggleFilter('levels','${l}',this.checked)">
+            <input type="checkbox" onchange="toggleFilter('levels','${l}',this.checked)" ${filters.levels.has(l) ? 'checked' : ''}>
             <span class="level-dot" style="background:${LEVEL_COLOR[l]}"></span>
             <span class="fr-label">${l}</span>
             <span class="fr-count">${levelCounts[l]||0}</span>
@@ -206,7 +204,7 @@ function buildSidebar() {
       <div class="filter-body" id="fs-kinds">
         ${['leaf','family','container','family_with_direct_content'].filter(k=>kindCounts[k]).map(k=>`
           <label class="filter-row">
-            <input type="checkbox" onchange="toggleFilter('kinds','${k}',this.checked)">
+            <input type="checkbox" onchange="toggleFilter('kinds','${k}',this.checked)" ${filters.kinds.has(k) ? 'checked' : ''}>
             <span class="fr-label">
               <span class="kind-badge kind-${k.split('_')[0]}">${k}</span>
             </span>
@@ -219,27 +217,27 @@ function buildSidebar() {
       <div class="filter-title" onclick="toggleFS(this)">⚡ Attributes <span class="toggle">▾</span></div>
       <div class="filter-body" id="fs-attrs">
         <label class="filter-row">
-          <input type="checkbox" onchange="toggleFilter('asterisked','yes',this.checked)">
+          <input type="checkbox" onchange="toggleFilter('asterisked','yes',this.checked)" ${filters.asterisked.has('yes') ? 'checked' : ''}>
           <span class="fr-label">⭐ Asterisked</span>
           <span class="fr-count">${RECORDS.filter(r=>r.anyAsterisk).length}</span>
         </label>
         <label class="filter-row">
-          <input type="checkbox" onchange="toggleFilter('asterisked','no',this.checked)">
+          <input type="checkbox" onchange="toggleFilter('asterisked','no',this.checked)" ${filters.asterisked.has('no') ? 'checked' : ''}>
           <span class="fr-label">Not asterisked</span>
           <span class="fr-count">${RECORDS.filter(r=>!r.anyAsterisk).length}</span>
         </label>
         <label class="filter-row">
-          <input type="checkbox" onchange="toggleFilter('hasLinks','yes',this.checked)">
+          <input type="checkbox" onchange="toggleFilter('hasLinks','yes',this.checked)" ${filters.hasLinks.has('yes') ? 'checked' : ''}>
           <span class="fr-label">Has links</span>
           <span class="fr-count">${RECORDS.filter(r=>r.link_count>0).length}</span>
         </label>
         <label class="filter-row">
-          <input type="checkbox" onchange="toggleFilter('hasLinks','no',this.checked)">
+          <input type="checkbox" onchange="toggleFilter('hasLinks','no',this.checked)" ${filters.hasLinks.has('no') ? 'checked' : ''}>
           <span class="fr-label">No links</span>
           <span class="fr-count">${RECORDS.filter(r=>r.link_count===0).length}</span>
         </label>
         <label class="filter-row">
-          <input type="checkbox" onchange="toggleAllLevels(this.checked)">
+          <input type="checkbox" onchange="toggleAllLevels(this.checked)" ${filters.levels.has('_all4') ? 'checked' : ''}>
           <span class="fr-label">All 4 levels</span>
           <span class="fr-count">${RECORDS.filter(r=>r.present_in_books.length===4).length}</span>
         </label>
@@ -251,7 +249,7 @@ function buildSidebar() {
       <div class="filter-body collapsed" id="fs-families">
         ${topFamilies.map(([fam,cnt])=>`
           <label class="filter-row">
-            <input type="checkbox" onchange="toggleFilter('families','${CSS.escape(fam)}',this.checked)" data-family="${fam.replace(/"/g,'&quot;')}">
+            <input type="checkbox" onchange="toggleFilter('families','${CSS.escape(fam)}',this.checked)" data-family="${fam.replace(/"/g,'&quot;')}" ${filters.families.has(fam) ? 'checked' : ''}>
             <span class="fr-label" style="font-size:11px" title="${fam}">${fam.length>30?fam.slice(0,28)+'…':fam}</span>
             <span class="fr-count">${cnt}</span>
           </label>`).join('')}
@@ -300,11 +298,27 @@ function setSearch(v) {
 }
 
 function clearAllFilters() {
-  filters = { search:"", chapters:new Set(), levels:new Set(), kinds:new Set(), asterisked:new Set(), hasLinks:new Set(), families:new Set() };
-  document.querySelectorAll('#sidebarContent input[type=checkbox]').forEach(c=>c.checked=false);
+  filters = { 
+    search:"", 
+    chapters:new Set(Object.keys(CHAPTER_TITLES)), 
+    levels:new Set(LEVELS), 
+    kinds:new Set(['leaf','family','container','family_with_direct_content']), 
+    asterisked:new Set(['yes','no']), 
+    hasLinks:new Set(['yes','no']), 
+    families:new Set() 
+  };
+  document.querySelectorAll('#sidebarContent input[type=checkbox]').forEach(c=> {
+    // We shouldn't blindly uncheck them all here since they might be rebuilt by applyFilters -> buildSidebar...
+    // Actually applyFilters doesn't rebuild sidebar!
+    // But we want to check the ones that should be checked!
+  });
+  
+  // Actually, we'll let buildSidebar handle checking when we rebuild it, 
+  // or we can just call buildSidebar() inside clearAllFilters() so it fully refreshes!
   const sb = document.getElementById('searchBox');
   if(sb) sb.value = '';
   page = 1;
+  buildSidebar();
   applyFilters();
 }
 
@@ -321,37 +335,37 @@ function filteredRecords() {
       const hay = ((r.denomination_canonical||'') + ' ' + (r.section_code||'') + ' ' + (r.family_denomination_canonical||'')).toLowerCase();
       if(!hay.includes(filters.search)) return false;
     }
-    if(filters.chapters.size > 0) {
-      if(!filters.chapters.has('ch'+r.chapter)) return false;
-    }
+    
+    if(!filters.chapters.has('ch'+r.chapter)) return false;
+    
     if(filters.levels.has('_all4')) {
       if(r.present_in_books.length < 4) return false;
-    } else if(filters.levels.size > 0) {
-      if(![...filters.levels].some(l => r.present_in_books.includes(l))) return false;
+    } else {
+      if(!r.present_in_books.some(l => filters.levels.has(l))) return false;
     }
-    if(filters.kinds.size > 0) {
-      if(!filters.kinds.has(r.kind)) return false;
-    }
-    if(filters.asterisked.size > 0) {
-      const has = r.anyAsterisk;
-      if(filters.asterisked.has('yes') && !has) return false;
-      if(filters.asterisked.has('no') && has) return false;
-    }
-    if(filters.hasLinks.size > 0) {
-      const has = r.link_count > 0;
-      if(filters.hasLinks.has('yes') && !has) return false;
-      if(filters.hasLinks.has('no') && has) return false;
-    }
+    
+    if(!filters.kinds.has(r.kind)) return false;
+    
+    const hasAst = r.anyAsterisk;
+    if(!filters.asterisked.has(hasAst ? 'yes' : 'no')) return false;
+
+    const hasLnk = r.link_count > 0;
+    if(!filters.hasLinks.has(hasLnk ? 'yes' : 'no')) return false;
+    
     if(filters.families.size > 0) {
       if(!filters.families.has(r.family_denomination_canonical)) return false;
     }
+    
     return true;
   });
 }
 
 function updateResultCount() {
   const fr = filteredRecords();
-  document.getElementById('resultCount').textContent = `${fr.length} of ${RECORDS.length} concepts`;
+  const rc = document.getElementById('resultCount');
+  if(rc) rc.textContent = `${fr.length} of ${RECORDS.length} concepts`;
+  const sb = document.getElementById('statusBadgeCount');
+  if(sb) sb.textContent = fr.length;
 }
 
 /* ============================================================
@@ -414,7 +428,7 @@ function renderPager(cur, max) {
   `;
 }
 function gotoPage(p) { page = p; renderTable(); }
-function escKey(k) { return k.replace(/'/g,"\\'"); }
+function escKey(k) { return (k||'').toString().replace(/'/g,"\\'"); }
 
 function selectRecord(chKey, recKey) {
   const key = chKey + ':' + recKey;
@@ -436,73 +450,44 @@ function selectRecord(chKey, recKey) {
 ============================================================ */
 function showNodeInfo(rec, rawC) {
   if(!rec || !rawC) return;
-  const panel = document.getElementById('nodeInfoPanel');
+  const panel = document.getElementById('detail');
   panel.classList.add('show');
-
-  document.getElementById('nipTitle').textContent = rec.denomination_canonical || '—';
-  document.getElementById('nipCode').textContent = rec.section_code + ' · Ch ' + rec.chapter + ' · ' + rec.kind;
-  document.getElementById('nipBadges').innerHTML =
-    rec.present_in_books.map(l=>`<span class="level-badge" style="background:${LEVEL_COLOR[l]}">${l}</span>`).join('') +
-    (rec.anyAsterisk ? '<span class="asterisk-badge" title="Asterisked">⭐ asterisked</span>' : '') +
-    `<span style="background:${CHAPTER_COLOR['ch'+rec.chapter]};color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;">${CHAPTER_TITLES['ch'+rec.chapter]||'Ch '+rec.chapter}</span>`;
 
   let html = '';
 
-  // Family info
-  if(rec.family_denomination_canonical) {
-    html += `<div class="nip-section"><div class="nip-section-title">Family</div><div style="font-size:13px;font-family:var(--serif);font-weight:600;">${rec.family_denomination_canonical}</div></div>`;
-  }
+  // Tags
+  html += `<div class="tags">`;
+  html += `<span class="tag" style="background:${CHAPTER_COLOR['ch'+rec.chapter]}33;color:${CHAPTER_COLOR['ch'+rec.chapter]}">${CHAPTER_TITLES['ch'+rec.chapter]||'Ch '+rec.chapter}</span>`;
+  rec.present_in_books.forEach(l => {
+    html += `<span class="tag" style="background:${LEVEL_COLOR[l]}33;color:${LEVEL_COLOR[l]}">${l}</span>`;
+  });
+  if(rec.anyAsterisk) html += `<span class="tag">⭐ asterisked</span>`;
+  html += `</div>`;
 
-  // Realisations per level
+  // Title
+  html += `<h3>${rec.denomination_canonical || '—'}</h3>`;
+
+  // Meta
+  html += `<div class="meta"><span>§ ${rec.section_code}</span> <span class="sep">•</span> <span>${rec.kind}</span> <span class="sep">•</span> <span>${rec.link_count} links</span></div>`;
+
+  // Summary (Realisations)
   const rPerBook = rawC.realisations_per_book || rawC.realisations_by_pos_per_book;
   if(rPerBook && Object.values(rPerBook).some(v=>v)) {
-    html += `<div class="nip-section"><div class="nip-section-title">Realisations / Examples</div><div class="per-book-grid">`;
+    let exStr = [];
     LEVELS.forEach(l => {
       const items = rawC.realisations_per_book?.[l];
-      const absent = !rec.present_in_books.includes(l);
-      html += `<div class="pb-cell ${absent?'absent':''}"><span class="pb-lvl" style="background:${LEVEL_COLOR[l]}">${l}</span>`;
-      if(!items || items.length===0) { html += `<div class="pb-content" style="color:var(--muted2);">${absent ? 'absent' : 'none'}</div>`; }
-      else {
-        html += `<ul class="realisation-list">`;
-        items.slice(0,6).forEach(it => {
-          html += `<li><span class="rl-text">${it.text || '—'}</span>${it.asterisked?'<span class="rl-star">⭐</span>':''}</li>`;
-        });
-        if(items.length>6) html += `<li style="color:var(--muted);font-size:10.5px">+${items.length-6} more</li>`;
-        html += `</ul>`;
+      if(items && items.length) {
+         exStr.push(items.slice(0,3).map(it => it.text).join(', '));
       }
-      html += `</div>`;
     });
-    html += `</div></div>`;
+    if(exStr.length) {
+      html += `<div class="sum"><strong>Examples:</strong> ${exStr.join(', ')}</div>`;
+    }
   }
 
-  // Competence statements (ch5)
-  const csPerBook = rawC.competence_statements_per_book;
-  if(csPerBook && Object.values(csPerBook).some(v=>v&&v.length)) {
-    html += `<div class="nip-section"><div class="nip-section-title">Competence Statements</div><div class="per-book-grid">`;
-    LEVELS.forEach(l => {
-      const items = csPerBook[l];
-      const absent = !rec.present_in_books.includes(l);
-      html += `<div class="pb-cell ${absent?'absent':''}"><span class="pb-lvl" style="background:${LEVEL_COLOR[l]}">${l}</span>`;
-      if(!items||!items.length) html += `<div class="pb-content" style="color:var(--muted2)">${absent?'absent':'none'}</div>`;
-      else html += `<div class="pb-content">${items.map(s=>`<div style="margin-bottom:4px">• ${s.text||''}</div>`).slice(0,4).join('')}</div>`;
-      html += `</div>`;
-    });
-    html += `</div></div>`;
-  }
-
-  // Category / material (ch9)
-  if(rawC.category_left_col || rawC.material_right_col) {
-    html += `<div class="nip-section"><div class="nip-section-title">Sociocultural Content</div><div class="per-book-grid">`;
-    LEVELS.forEach(l => {
-      const cat = (rawC.category_left_col||{})[l];
-      const mat = (rawC.material_right_col||{})[l];
-      const absent = !rec.present_in_books.includes(l);
-      html += `<div class="pb-cell ${absent?'absent':''}"><span class="pb-lvl" style="background:${LEVEL_COLOR[l]}">${l}</span>`;
-      if(cat||mat) html += `<div class="pb-content">${cat?'<strong>'+cat+'</strong><br>':''}${mat||''}</div>`;
-      else html += `<div class="pb-content" style="color:var(--muted2)">${absent?'absent':'—'}</div>`;
-      html += `</div>`;
-    });
-    html += `</div></div>`;
+  // Family Info
+  if(rec.family_denomination_canonical) {
+    html += `<h4>Family</h4><div style="font-size:12.5px;color:var(--ink);margin-bottom:12px">${rec.family_denomination_canonical}</div>`;
   }
 
   // Connections out
@@ -510,18 +495,24 @@ function showNodeInfo(rec, rawC) {
   const allLinksOut = Object.entries(linksAll).flatMap(([lvl,arr])=>(arr||[]).map(lk=>({...lk,level:lvl})));
   const uniqueLinks = [];
   const seenLinkKeys = new Set();
-  allLinksOut.forEach(lk => { const k = lk.source_concept_key||lk.target; if(!seenLinkKeys.has(k)){seenLinkKeys.add(k);uniqueLinks.push(lk);} });
+  allLinksOut.forEach(lk => { 
+    const k = lk.target_concept_key || lk.source_concept_key || lk.target; 
+    if(k && !seenLinkKeys.has(k)){seenLinkKeys.add(k);uniqueLinks.push(lk);} 
+  });
   if(uniqueLinks.length) {
-    html += `<div class="nip-section"><div class="nip-section-title">Links Out (${uniqueLinks.length})</div><ul class="connected-list">`;
+    html += `<h4>Links To <span class="badge">${uniqueLinks.length}</span></h4>`;
     uniqueLinks.slice(0,8).forEach(lk => {
-      const targetKey = lk.source_concept_key || lk.target;
-      const targetChBucket = lk.source_chN_bucket || ('ch'+(lk.source_chapter||''));
+      const targetKey = lk.target_concept_key || lk.source_concept_key || lk.target || '';
+      const targetChBucket = lk.target_chN_bucket || lk.source_chN_bucket || ('ch'+(lk.target_chapter||lk.source_chapter||''));
       const targetRec = RECORDS.find(r=>r.chKey===targetChBucket && r.recKey===targetKey);
       const name = targetRec?.denomination_canonical || targetKey;
-      html += `<li onclick="selectRecord('${targetChBucket}','${escKey(targetKey)}')"><div class="cl-name">${name}</div><div class="cl-meta">${lk.type||''} · ${lk.level||''}</div></li>`;
+      html += `<div class="nb" onclick="selectRecord('${targetChBucket}','${escKey(targetKey)}')">
+        <span class="code">${targetRec?.section_code||''}</span>
+        <span class="dot" style="background:${CHAPTER_COLOR[targetChBucket]||'#ccc'}"></span>
+        <span class="nm">${name}</span>
+        <span class="pill hier">${lk.type||''}</span>
+      </div>`;
     });
-    if(uniqueLinks.length>8) html += `<li style="color:var(--muted);font-size:11px;cursor:default">+${uniqueLinks.length-8} more</li>`;
-    html += `</ul></div>`;
   }
 
   // Connections in
@@ -529,40 +520,52 @@ function showNodeInfo(rec, rawC) {
   const allLinksIn = Object.entries(linkedFromAll).flatMap(([lvl,arr])=>(arr||[]).map(lk=>({...lk,level:lvl})));
   const uniqueLinksIn = [];
   const seenIn = new Set();
-  allLinksIn.forEach(lk => { const k = lk.source_concept_key; if(k && !seenIn.has(k)){seenIn.add(k);uniqueLinksIn.push(lk);} });
+  allLinksIn.forEach(lk => { 
+    const k = lk.source_concept_key || lk.target_concept_key || lk.source; 
+    if(k && !seenIn.has(k)){seenIn.add(k);uniqueLinksIn.push(lk);} 
+  });
   if(uniqueLinksIn.length) {
-    html += `<div class="nip-section"><div class="nip-section-title">Linked From (${uniqueLinksIn.length})</div><ul class="connected-list">`;
+    html += `<h4>Linked From <span class="badge">${uniqueLinksIn.length}</span></h4>`;
     uniqueLinksIn.slice(0,8).forEach(lk => {
-      const targetRec = RECORDS.find(r=>r.chKey===lk.source_chN_bucket && r.recKey===lk.source_concept_key);
-      const name = targetRec?.denomination_canonical || lk.source_concept_key;
-      html += `<li onclick="selectRecord('${lk.source_chN_bucket}','${escKey(lk.source_concept_key)}')"><div class="cl-name">${name}</div><div class="cl-meta">${lk.type||''} · ${lk.level||''}</div></li>`;
+      const sourceKey = lk.source_concept_key || lk.target_concept_key || lk.source || '';
+      const sourceChBucket = lk.source_chN_bucket || lk.target_chN_bucket || ('ch'+(lk.source_chapter||lk.target_chapter||''));
+      const sourceRec = RECORDS.find(r=>r.chKey===sourceChBucket && r.recKey===sourceKey);
+      const name = sourceRec?.denomination_canonical || sourceKey;
+      html += `<div class="nb" onclick="selectRecord('${sourceChBucket}','${escKey(sourceKey)}')">
+        <span class="code">${sourceRec?.section_code||''}</span>
+        <span class="dot" style="background:${CHAPTER_COLOR[sourceChBucket]||'#ccc'}"></span>
+        <span class="nm">${name}</span>
+        <span class="pill xref">${lk.type||''}</span>
+      </div>`;
     });
-    if(uniqueLinksIn.length>8) html += `<li style="color:var(--muted);font-size:11px;cursor:default">+${uniqueLinksIn.length-8} more</li>`;
-    html += `</ul></div>`;
   }
 
   // CEFR back-refs
   const cefrRefs = rawC.cefr_descriptors_pointing_to_this_per_book || {};
   const allCefr = Object.entries(cefrRefs).flatMap(([l,arr])=>(arr||[]).map(r=>({...r,level:l})));
   if(allCefr.length) {
-    html += `<div class="nip-section"><div class="nip-section-title">CEFR Descriptors (${allCefr.length})</div>`;
+    html += `<h4>CEFR Descriptors <span class="badge">${allCefr.length}</span></h4>`;
     allCefr.slice(0,4).forEach(cr => {
       const ch2c = ROOT.concepts.ch2?.[cr.source_row_id_canonical];
       const descText = ch2c ? (ch2c.descriptor_text_per_book?.[cr.level] || '') : '';
       html += `<div style="border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:6px;font-size:11.5px;">
-        <span class="level-badge" style="background:${LEVEL_COLOR[cr.level]};margin-right:6px;">${cr.level}</span>
+        <span class="level-badge" style="background:${LEVEL_COLOR[cr.level]};margin-right:6px;padding:2px 6px;border-radius:4px;color:#fff">${cr.level}</span>
         ${cr.criterion_label ? `<strong>${cr.criterion_label}</strong><br>` : ''}
         ${descText ? `<span style="color:var(--muted)">${descText.slice(0,120)}${descText.length>120?'…':''}</span>` : ''}
       </div>`;
     });
-    html += `</div>`;
   }
 
-  document.getElementById('nodeInfoBody').innerHTML = html;
+  html += `<div style="margin-top:16px;display:flex;gap:8px;">
+    <button class="b" onclick="setCurrentAsPathFrom()">Set as FROM</button>
+    <button class="b" onclick="setCurrentAsPathTo()">Set as TO</button>
+  </div>`;
+
+  document.getElementById('detailBody').innerHTML = html;
 }
 
 function closeNodeInfo() {
-  document.getElementById('nodeInfoPanel').classList.remove('show');
+  document.getElementById('detail').classList.remove('show');
   NET.selected = null;
   renderTable();
 }
@@ -574,23 +577,37 @@ const CANVAS_MAX_NODES = 400; // cap for performance
 
 function buildNetworkData() {
   const canvas = document.getElementById('networkCanvas');
+  // Ensure canvas sized before placing nodes so initial positions use actual viewport
+  resizeNetCanvas();
+  // Reset view so layout starts from a neutral, centered state
+  NET.zoom = 1; NET.panX = 0; NET.panY = 0;
   const fr = filteredRecords().slice(0, CANVAS_MAX_NODES);
   const nodeKeys = new Set(fr.map(r=>r.chKey+':'+r.recKey));
 
-  NET.nodes = fr.map(r => ({
-    key: r.chKey+':'+r.recKey,
-    chKey: r.chKey,
-    recKey: r.recKey,
-    label: r.denomination_canonical || r.section_code,
-    chapter: r.chapter,
-    kind: r.kind,
-    present_in_books: r.present_in_books,
-    x: Math.random() * 800 + 100,
-    y: Math.random() * 600 + 100,
-    vx: 0, vy: 0,
-    pinned: false,
-    link_count: r.link_count,
-  }));
+  // Use canvas dimensions for initial placement (with safe margins)
+  const W = Math.max(600, canvas.width);
+  const H = Math.max(400, canvas.height);
+  // Spread nodes in a loose radial distribution around canvas center to avoid linear clusters
+  const N = fr.length || 1;
+  const cx = W / 2, cy = H / 2;
+  NET.nodes = fr.map((r, i) => {
+    const angle = (i / N) * Math.PI * 2;
+    const radius = 60 + Math.random() * (Math.min(W, H) / 3);
+    return {
+      key: r.chKey+':'+r.recKey,
+      chKey: r.chKey,
+      recKey: r.recKey,
+      label: r.denomination_canonical || r.section_code,
+      chapter: r.chapter,
+      kind: r.kind,
+      present_in_books: r.present_in_books,
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+      vx: 0, vy: 0,
+      pinned: false,
+      link_count: r.link_count,
+    };
+  });
 
   const nodeIndex = {};
   NET.nodes.forEach((n,i) => nodeIndex[n.key] = i);
@@ -623,11 +640,14 @@ function buildNetworkData() {
 }
 
 function buildNetLegend() {
-  document.getElementById('netLegend').innerHTML = Object.entries(CHAPTER_COLOR).map(([ch,c])=>`
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${c}"></div>
-      <span>${ch}</span>
-    </div>`).join('');
+  const el = document.getElementById('netLegend');
+  if(el) {
+    el.innerHTML = Object.entries(CHAPTER_COLOR).map(([ch,c])=>`
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${c}"></div>
+        <span>${ch}</span>
+      </div>`).join('');
+  }
 }
 
 function resizeNetCanvas() {
@@ -646,12 +666,14 @@ function runLayout() {
   if(NET.animFrame) cancelAnimationFrame(NET.animFrame);
   let iter = 0;
   function tick() {
-    forceStep();
+    // Cool down the layout smoothly over 200 iterations
+    let temp = Math.max(0.1, 1 - (iter / 200));
+    forceStep(temp);
     redrawNet();
     iter++;
-    // Keep running if we're dragging, otherwise decay after 400 iterations
-    if(iter < 400 || NET.dragging) {
-      if(NET.dragging && iter > 300) iter = 200; // prevent timeout while dragging
+    // Keep running if we're dragging, otherwise decay quickly
+    if(iter < 200 || NET.dragging) {
+      if(NET.dragging && iter > 150) iter = 100; // keep it warm while dragging
       NET.animFrame = requestAnimationFrame(tick);
     }
   }
@@ -666,24 +688,49 @@ function unpinAll() {
 
 function updateCharge() { /* just re-run a few steps */ forceStep(); redrawNet(); }
 
-function forceStep() {
+function forceStep(temp = 1) {
   const nodes = NET.nodes;
   const edges = NET.edges;
   const charge = parseFloat(document.getElementById('chargeRange')?.value || 80);
   const canvas = document.getElementById('networkCanvas');
   const W = canvas.width, H = canvas.height;
 
-  // Repulsion
+  const nodeSize = parseFloat(document.getElementById('nodeSizeRange')?.value || 10);
+
+  // Repulsion & Collision
   for(let i=0;i<nodes.length;i++) {
+    const r_i = nodeSize; // Equal size
     for(let j=i+1;j<nodes.length;j++) {
       let dx = nodes[j].x - nodes[i].x;
       let dy = nodes[j].y - nodes[i].y;
       let dist = Math.sqrt(dx*dx+dy*dy) || 1;
-      let force = (charge * charge) / dist;
-      nodes[i].vx -= (dx/dist)*force*0.01;
-      nodes[i].vy -= (dy/dist)*force*0.01;
-      nodes[j].vx += (dx/dist)*force*0.01;
-      nodes[j].vy += (dy/dist)*force*0.01;
+      
+      const r_j = nodeSize; // Equal size
+      const min_dist = r_i + r_j + 15; // 15px padding between nodes to spread them
+
+      // Hard collision avoidance
+      if(dist < min_dist) {
+        let overlap = min_dist - dist;
+        let pushX = (dx/dist) * overlap * 0.5 * temp;
+        let pushY = (dy/dist) * overlap * 0.5 * temp;
+        
+        // Nudge positions directly to prevent overlap
+        nodes[i].x -= pushX; nodes[i].y -= pushY;
+        nodes[j].x += pushX; nodes[j].y += pushY;
+        
+        // Re-calculate dist for the repulsion force
+        dx = nodes[j].x - nodes[i].x;
+        dy = nodes[j].y - nodes[i].y;
+        dist = Math.sqrt(dx*dx+dy*dy) || 1;
+      }
+
+      // Base inverse-square repulsion
+      let force = (charge) / (dist*dist + 0.01);
+      const REP_SCALE = 0.08;
+      nodes[i].vx -= (dx/dist)*force*REP_SCALE;
+      nodes[i].vy -= (dy/dist)*force*REP_SCALE;
+      nodes[j].vx += (dx/dist)*force*REP_SCALE;
+      nodes[j].vy += (dy/dist)*force*REP_SCALE;
     }
   }
   // Attraction along edges
@@ -692,7 +739,8 @@ function forceStep() {
     if(!a||!b) return;
     let dx = b.x-a.x, dy = b.y-a.y;
     let dist = Math.sqrt(dx*dx+dy*dy)||1;
-    let force = (dist-80)*0.005;
+    const REST_LEN = 160; // Spread edges further
+    let force = (dist - REST_LEN) * 0.005;
     a.vx += (dx/dist)*force;
     a.vy += (dy/dist)*force;
     b.vx -= (dx/dist)*force;
@@ -701,13 +749,13 @@ function forceStep() {
   // Center gravity
   const cx = W/2, cy = H/2;
   nodes.forEach(n => {
-    n.vx += (cx-n.x)*0.003;
-    n.vy += (cy-n.y)*0.003;
+    n.vx += (cx-n.x)*0.01;
+    n.vy += (cy-n.y)*0.01;
   });
-  // Apply
+  // Apply with temperature-based damping to freeze the layout gradually
   nodes.forEach(n => {
     if(n.pinned) return;
-    n.vx *= 0.7; n.vy *= 0.7;
+    n.vx *= 0.7 * temp; n.vy *= 0.7 * temp;
     n.x += n.vx; n.y += n.vy;
     n.x = Math.max(20, Math.min(W-20, n.x));
     n.y = Math.max(20, Math.min(H-20, n.y));
@@ -743,56 +791,41 @@ function redrawNet() {
     });
   }
 
-  // Edges — curved bezier lines
+  // Edges — straight lines for performance
   if(showEdges) {
+    ctx.beginPath();
     edges.forEach((e, i) => {
       const a = nodes[e.s], b = nodes[e.t];
       if(!a||!b) return;
+      
       const onPath = pathHighlight.size > 0 && pathHighlight.has(a.key) && pathHighlight.has(b.key);
       const isHovEdge = hovEdges.has(i);
 
-      // Compute a curved control point
-      const mx = (a.x + b.x)/2, my = (a.y + b.y)/2;
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      const curvature = Math.min(dist * 0.12, 30);
-      const cx1 = mx + (dy/dist)*curvature;
-      const cy1 = my - (dx/dist)*curvature;
-
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.quadraticCurveTo(cx1, cy1, b.x, b.y);
-
       if(onPath) {
-        const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-        grad.addColorStop(0, '#f97316');
-        grad.addColorStop(1, '#fb7185');
-        ctx.strokeStyle = grad;
+        ctx.strokeStyle = '#f97316';
         ctx.lineWidth = 3.0 / zoom;
         ctx.globalAlpha = 1;
       } else if (isHovEdge) {
-        const colA = CHAPTER_COLOR['ch'+a.chapter] || '#60a5fa';
-        const colB = CHAPTER_COLOR['ch'+b.chapter] || '#60a5fa';
-        const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-        grad.addColorStop(0, colA);
-        grad.addColorStop(1, colB);
-        ctx.strokeStyle = grad;
+        ctx.strokeStyle = '#3b6fd4';
         ctx.lineWidth = 2.2 / zoom;
         ctx.globalAlpha = 0.9;
       } else {
-        ctx.strokeStyle = 'rgba(148,163,184,0.45)';
+        ctx.strokeStyle = 'rgba(148,163,184,0.3)';
         ctx.lineWidth = 0.8 / zoom;
         let alpha = 1;
-        if (pathHighlight.size > 0) alpha = 0.3;
-        else if (hovNodes.size > 0) alpha = 0.3;
+        if (pathHighlight.size > 0) alpha = 0.1;
+        else if (hovNodes.size > 0) alpha = 0.1;
         ctx.globalAlpha = alpha;
       }
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
     });
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
-  // Nodes — gradient filled with glow
+  // Nodes — solid colors, crisp rendering (no shadows/gradients)
   nodes.forEach(n => {
     const isSel = NET.selected === n.key;
     const isHov = NET.hovered === n;
@@ -800,8 +833,7 @@ function redrawNet() {
     const isPathSel = (pathFrom===n.key || pathTo===n.key);
     const isHovNode = hovNodes.has(n.key);
     const chColor = CHAPTER_COLOR['ch'+n.chapter] || '#94a3b8';
-    const glowColor = CHAPTER_GLOW['ch'+n.chapter] || 'rgba(148,163,184,0.4)';
-    const r = nodeSize * (1 + Math.min(n.link_count, 20)*0.06);
+    const r = nodeSize;
 
     let dimmed = false;
     if (pathHighlight.size > 0) dimmed = !onPath;
@@ -809,34 +841,24 @@ function redrawNet() {
 
     ctx.globalAlpha = dimmed ? 0.12 : 1;
 
-    // Outer glow for important/hovered/selected nodes
-    if((isSel || isHov || isPathSel || isHovNode) && !dimmed) {
-      ctx.save();
-      ctx.shadowColor = isPathSel ? '#f97316' : chColor;
-      ctx.shadowBlur = isHov ? 24 : 16;
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r, 0, Math.PI*2);
-      ctx.fillStyle = chColor;
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Gradient fill
-    const grad = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, r*0.1, n.x, n.y, r);
-    grad.addColorStop(0, lightenColor(chColor, 40));
-    grad.addColorStop(1, chColor);
+    // Solid fill
     ctx.beginPath();
     ctx.arc(n.x, n.y, r, 0, Math.PI*2);
-    ctx.fillStyle = grad;
+    ctx.fillStyle = chColor;
     ctx.fill();
+    
+    // Crisp border
+    ctx.lineWidth = isSel ? 3 : 1.5;
+    ctx.strokeStyle = isSel ? '#192233' : '#ffffff';
+    ctx.stroke();
 
-    // Ring styles
-    if(isSel || isPathSel) {
-      ctx.strokeStyle = isSel ? 'rgba(26,24,20,0.7)' : '#f97316';
+    // Extra highlight for hover/path selection
+    if(isPathSel || (isSel && pathMode)) {
+      ctx.strokeStyle = '#f97316';
       ctx.lineWidth = 2.5 / zoom;
       ctx.stroke();
     } else if(isHov) {
-      ctx.strokeStyle = 'rgba(26,24,20,0.5)';
+      ctx.strokeStyle = '#192233';
       ctx.lineWidth = 2.0 / zoom;
       ctx.stroke();
     } else if(n.kind === 'family') {
@@ -1054,8 +1076,10 @@ function setPathMode(mode) {
 function assignPathNode(node) {
   if(pathMode === 'from') {
     pathFrom = node.key;
-    document.getElementById('pathFromLabel').textContent = (node.label||node.recKey).slice(0,30);
-    document.getElementById('pathFromBtn').classList.add('set');
+    document.getElementById('pathFromLabel')?.insertAdjacentText('afterbegin', (node.label||node.recKey).slice(0,30)); // just a placeholder since we can't use optional chaining for assignment easily
+    // Better way:
+    const pfLabel = document.getElementById('pathFromLabel'); if(pfLabel) pfLabel.textContent = (node.label||node.recKey).slice(0,30);
+    document.getElementById('pathFromBtn')?.classList.add('set');
   } else if(pathMode === 'to') {
     pathTo = node.key;
     document.getElementById('pathToLabel').textContent = (node.label||node.recKey).slice(0,30);
@@ -1069,16 +1093,16 @@ function setCurrentAsPathFrom() {
   if(!NET.selected) return;
   pathFrom = NET.selected;
   const node = NET.nodes.find(n=>n.key===NET.selected);
-  document.getElementById('pathFromLabel').textContent = (node?.label||NET.selected).slice(0,30);
-  document.getElementById('pathFromBtn').classList.add('set');
+  const lbl = document.getElementById('pathFromLabel'); if(lbl) lbl.textContent = (node?.label||NET.selected).slice(0,30);
+  const btn = document.getElementById('pathFromBtn'); if(btn) btn.classList.add('set');
   notify('Set as path FROM');
 }
 function setCurrentAsPathTo() {
   if(!NET.selected) return;
   pathTo = NET.selected;
   const node = NET.nodes.find(n=>n.key===NET.selected);
-  document.getElementById('pathToLabel').textContent = (node?.label||NET.selected).slice(0,30);
-  document.getElementById('pathToBtn').classList.add('set');
+  const lbl = document.getElementById('pathToLabel'); if(lbl) lbl.textContent = (node?.label||NET.selected).slice(0,30);
+  const btn = document.getElementById('pathToBtn'); if(btn) btn.classList.add('set');
   notify('Set as path TO');
 }
 
@@ -1133,10 +1157,10 @@ function findPath() {
   }
 
   const resultEl = document.getElementById('pathResult');
-  resultEl.style.display = 'block';
+  if(resultEl) resultEl.style.display = 'block';
 
   if(!found) {
-    resultEl.innerHTML = `<div style="color:var(--muted);text-align:center;padding:12px;">No path found between these nodes in the current view.<br><small>Try loading more nodes or adjusting filters.</small></div>`;
+    if(resultEl) resultEl.innerHTML = `<div style="color:var(--muted);text-align:center;padding:12px;">No path found between these nodes in the current view.<br><small>Try loading more nodes or adjusting filters.</small></div>`;
     pathHighlight.clear();
     redrawNet();
     return;
@@ -1166,7 +1190,7 @@ function findPath() {
       </div>
     </div>`;
   });
-  resultEl.innerHTML = html;
+  if(resultEl) resultEl.innerHTML = html;
 
   // Center view on path
   const pathNodes = path.map(k=>NET.nodes.find(n=>n.key===k)).filter(Boolean);
@@ -1184,11 +1208,11 @@ function clearPath() {
   pathFrom = pathTo = null;
   pathMode = null;
   pathHighlight.clear();
-  document.getElementById('pathFromLabel').textContent = 'Click to set start node';
-  document.getElementById('pathToLabel').textContent = 'Click to set end node';
-  document.getElementById('pathFromBtn').classList.remove('set');
-  document.getElementById('pathToBtn').classList.remove('set');
-  document.getElementById('pathResult').style.display = 'none';
+  const pfl = document.getElementById('pathFromLabel'); if(pfl) pfl.textContent = 'Click to set start node';
+  const ptl = document.getElementById('pathToLabel'); if(ptl) ptl.textContent = 'Click to set end node';
+  const pfb = document.getElementById('pathFromBtn'); if(pfb) pfb.classList.remove('set');
+  const ptb = document.getElementById('pathToBtn'); if(ptb) ptb.classList.remove('set');
+  const resultEl = document.getElementById('pathResult'); if(resultEl) resultEl.style.display = 'none';
   netCanvas.style.cursor = 'grab';
   redrawNet();
 }
@@ -1466,7 +1490,7 @@ function buildStatsView() {
 /* ============================================================
    TAB SWITCHING
 ============================================================ */
-let activeTab = 'table';
+let activeTab = 'network';
 
 function toggleNetDrawer() {
   const drawer = document.getElementById('netDrawer');
@@ -1475,21 +1499,29 @@ function toggleNetDrawer() {
   toggle.style.display = drawer.classList.contains('open') ? 'none' : '';
 }
 
-document.getElementById('headerTabs').addEventListener('click', e => {
-  const btn = e.target.closest('.header-tab');
-  if(!btn || !ROOT) return;
-  const tab = btn.dataset.tab;
-  document.querySelectorAll('.header-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+window.switchTab = function(tab) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(tab+'View').classList.add('active');
   activeTab = tab;
 
   if(tab === 'network') {
-    setTimeout(()=>{ resizeNetCanvas(); redrawNet(); }, 50);
+    setTimeout(()=>{ resizeNetCanvas(); buildNetworkData(); }, 50);
   } else if(tab === 'radial') {
     setTimeout(()=>drawRadial(), 50);
+  } else if(tab === 'table') {
+    renderTable();
+  } else if(tab === 'stats') {
+    buildStatsView();
   }
+};
+
+document.getElementById('headerTabs')?.addEventListener('click', e => {
+  const btn = e.target.closest('.header-tab');
+  if(!btn || !ROOT) return;
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.header-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  window.switchTab(tab);
 });
 
 /* ============================================================
@@ -1508,18 +1540,24 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 /* ============================================================
    TOOLTIP
 ============================================================ */
-const tooltipEl = document.getElementById('tooltip');
 function showTooltip(x, y, html) {
+  const tooltipEl = document.getElementById('tooltip');
+  if(!tooltipEl) return;
   tooltipEl.innerHTML = html;
   tooltipEl.style.left = (x+14)+'px';
   tooltipEl.style.top = (y-10)+'px';
   tooltipEl.classList.add('show');
 }
 function moveTooltip(x, y) {
+  const tooltipEl = document.getElementById('tooltip');
+  if(!tooltipEl) return;
   tooltipEl.style.left = (x+14)+'px';
   tooltipEl.style.top = (y-10)+'px';
 }
-function hideTooltip() { tooltipEl.classList.remove('show'); }
+function hideTooltip() { 
+  const tooltipEl = document.getElementById('tooltip');
+  if(tooltipEl) tooltipEl.classList.remove('show'); 
+}
 
 /* ============================================================
    NOTIFICATION
