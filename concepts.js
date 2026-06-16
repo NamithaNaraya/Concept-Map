@@ -686,6 +686,30 @@ function buildNetworkData() {
     gatherLinks('orthography_rules_applying_to_this_per_book', 'ortho_xref');
     gatherLinks('sociocultural_notes_referencing_this_per_book', 'socio_xref');
     gatherLinks('learner_strategies_referencing_this_per_book', 'strategy_xref');
+
+    // Also extract outgoing links to ensure nothing is missed
+    const gatherOutgoingLinks = (perBookField, defaultType) => {
+      const field = raw[perBookField] || {};
+      const grouped = {};
+      for(const book of Object.keys(field)) {
+        if(!field[book]) continue;
+        field[book].forEach(link => {
+          const tKey = link.target_row_id_canonical || link.target_concept_key || link.target_section_code;
+          if(!tKey) return;
+          const tCh = link.target_chapter;
+          const tType = link.type || defaultType;
+          const gKey = tCh + '::' + tKey + '::' + tType;
+          if(!grouped[gKey]) grouped[gKey] = { tCh, tKey, tType, levels: new Set() };
+          grouped[gKey].levels.add(book);
+        });
+      }
+      for(const gKey in grouped) {
+        const g = grouped[gKey];
+        // Swapping target as source to reuse the addIncomingEdge logic
+        addIncomingEdge(Array.from(g.levels), g.tCh, g.tKey, g.tType);
+      }
+    };
+    gatherOutgoingLinks('links_to_concepts_per_book', 'link');
   });
 
   // Build legend
@@ -833,15 +857,25 @@ function redrawNet() {
   ctx.translate(px, py);
   ctx.scale(zoom, zoom);
 
-  // Pre-calculate hover highlights
+  // Pre-calculate hover highlights and selection neighbors
   let hovNodes = new Set();
   let hovEdges = new Set();
+  let selNeighbors = new Set();
+
   if(NET.hovered && pathHighlight.size === 0) {
     hovNodes.add(NET.hovered.key);
     edges.forEach((e, i) => {
       const a = nodes[e.s], b = nodes[e.t];
       if(a === NET.hovered) { hovNodes.add(b.key); hovEdges.add(i); }
       if(b === NET.hovered) { hovNodes.add(a.key); hovEdges.add(i); }
+    });
+  }
+
+  if(NET.selected) {
+    edges.forEach((e) => {
+      const a = nodes[e.s], b = nodes[e.t];
+      if(a.key === NET.selected) selNeighbors.add(b.key);
+      if(b.key === NET.selected) selNeighbors.add(a.key);
     });
   }
 
@@ -857,17 +891,18 @@ function redrawNet() {
 
       if(onPath) {
         ctx.strokeStyle = '#f97316';
-        ctx.lineWidth = 3.0 / zoom;
+        ctx.lineWidth = 4.0 / zoom;
         ctx.globalAlpha = 1;
       } else if (isHovEdge) {
         ctx.strokeStyle = '#3b6fd4';
-        ctx.lineWidth = 2.2 / zoom;
+        ctx.lineWidth = 3.0 / zoom;
         ctx.globalAlpha = 0.9;
       } else {
-        ctx.strokeStyle = 'rgba(148,163,184,0.6)';
-        ctx.lineWidth = 1.5 / zoom;
+        ctx.strokeStyle = 'rgba(148,163,184,0.7)';
+        ctx.lineWidth = 2.5 / zoom;
         let alpha = 1;
         if (pathHighlight.size > 0) alpha = 0.1;
+        else if (NET.selected && !(a.key === NET.selected || b.key === NET.selected)) alpha = 0.1;
         ctx.globalAlpha = alpha;
       }
       
@@ -890,6 +925,7 @@ function redrawNet() {
 
     let dimmed = false;
     if (pathHighlight.size > 0) dimmed = !onPath;
+    else if (NET.selected) dimmed = !isSel && !selNeighbors.has(n.key);
 
     ctx.globalAlpha = dimmed ? 0.12 : 1;
 
@@ -1085,7 +1121,7 @@ function hitTest(wx, wy) {
   const nodeSize = parseFloat(document.getElementById('nodeSizeRange')?.value || 10);
   for(let i = NET.nodes.length-1; i>=0; i--) {
     const n = NET.nodes[i];
-    const r = nodeSize * (1 + Math.min(n.link_count,20)*0.05);
+    const r = nodeSize;
     const dx = wx-n.x, dy = wy-n.y;
     if(dx*dx+dy*dy <= r*r) return n;
   }
