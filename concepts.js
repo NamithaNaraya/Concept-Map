@@ -879,16 +879,17 @@ function redrawNet() {
     });
   }
 
-  // Edges — straight lines for performance
+  // Edges — individually stroked for distinct styling
   if(showEdges) {
-    ctx.beginPath();
     edges.forEach((e, i) => {
       const a = nodes[e.s], b = nodes[e.t];
       if(!a||!b) return;
       
       const onPath = pathHighlight.size > 0 && pathHighlight.has(a.key) && pathHighlight.has(b.key);
       const isHovEdge = hovEdges.has(i);
+      const isSelEdge = NET.selected && (a.key === NET.selected || b.key === NET.selected);
 
+      ctx.beginPath();
       if(onPath) {
         ctx.strokeStyle = '#f97316';
         ctx.lineWidth = 4.0 / zoom;
@@ -897,19 +898,23 @@ function redrawNet() {
         ctx.strokeStyle = '#3b6fd4';
         ctx.lineWidth = 3.0 / zoom;
         ctx.globalAlpha = 0.9;
+      } else if (isSelEdge) {
+        ctx.strokeStyle = '#192233';
+        ctx.lineWidth = 3.5 / zoom;
+        ctx.globalAlpha = 0.85;
       } else {
         ctx.strokeStyle = 'rgba(148,163,184,0.7)';
         ctx.lineWidth = 2.5 / zoom;
         let alpha = 1;
         if (pathHighlight.size > 0) alpha = 0.1;
-        else if (NET.selected && !(a.key === NET.selected || b.key === NET.selected)) alpha = 0.1;
+        else if (NET.selected) alpha = 0.1;
         ctx.globalAlpha = alpha;
       }
       
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
+      ctx.stroke();
     });
-    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
@@ -956,15 +961,16 @@ function redrawNet() {
     }
     ctx.globalAlpha = 1;
 
-    // Level indicator dots
+    // Level indicator dashes (so they don't look like unlinked nodes)
     if(n.present_in_books.length < 4 && !dimmed) {
-      const dotSpacing = 5;
-      const totalW = (n.present_in_books.length - 1) * dotSpacing;
-      n.present_in_books.forEach((l,i) => {
-        ctx.beginPath();
-        ctx.arc(n.x - totalW/2 + i*dotSpacing, n.y + r + 5, 2.2, 0, Math.PI*2);
+      const dashW = 6;
+      const gap = 3;
+      const totalW = (n.present_in_books.length * dashW) + ((n.present_in_books.length - 1) * gap);
+      let startX = n.x - totalW/2;
+      n.present_in_books.forEach((l) => {
         ctx.fillStyle = LEVEL_COLOR[l];
-        ctx.fill();
+        ctx.fillRect(startX, n.y + r + 5, dashW, 3);
+        startX += dashW + gap;
       });
     }
 
@@ -1094,8 +1100,19 @@ netCanvas.addEventListener('click', e => {
     const rec = RECORDS.find(r=>r.chKey===hit.chKey && r.recKey===hit.recKey);
     if(rec && rawC) showNodeInfo(rec, rawC);
     redrawNet();
+  } else if (!hit && !pathMode) {
+    resetNetworkView();
   }
 });
+
+function resetNetworkView() {
+  NET.selected = null;
+  pathFrom = null;
+  pathTo = null;
+  pathHighlight.clear();
+  document.getElementById('panel').classList.remove('open');
+  redrawNet();
+}
 netCanvas.addEventListener('wheel', e => {
   e.preventDefault();
   const factor = e.deltaY < 0 ? 1.12 : 0.88;
@@ -1611,18 +1628,6 @@ document.getElementById('headerTabs')?.addEventListener('click', e => {
   window.switchTab(tab);
 });
 
-/* ============================================================
-   EXPORT
-============================================================ */
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const json = JSON.stringify(ROOT, null, 2);
-  const blob = new Blob([json], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'concept_map_export.json';
-  a.click();
-  notify('JSON exported!');
-});
 
 /* ============================================================
    TOOLTIP

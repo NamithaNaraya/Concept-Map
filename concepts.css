@@ -251,6 +251,7 @@ header {
   flex: 1;
   overflow: hidden;
   position: relative;
+  min-height: 0;
 }
 
 /* ===== EMPTY STATE ===== */
@@ -454,9 +455,9 @@ header {
 }
 
 .level-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
   flex-shrink: 0;
 }
 
@@ -506,6 +507,7 @@ header {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  min-height: 0;
 }
 
 /* ===== VIEW CONTAINERS ===== */
@@ -514,6 +516,7 @@ header {
   flex: 1;
   overflow: hidden;
   flex-direction: column;
+  min-height: 0;
 }
 
 .view.active {
@@ -524,6 +527,7 @@ header {
 #tableWrap {
   flex: 1;
   overflow: auto;
+  min-height: 0;
 }
 
 .table-toolbar {
@@ -545,8 +549,7 @@ header {
 }
 
 .sort-select {
-  font-size: 12px;
-  padding: 5px 10px;
+  padding: 6px 30px 6px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--panel);
@@ -556,8 +559,15 @@ header {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12.5px;
+}
+
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 thead th {
