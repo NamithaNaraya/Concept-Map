@@ -168,7 +168,7 @@ function buildSidebar() {
       <div class="filter-body" id="fs-search">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" id="searchBox" placeholder="Name, code, family…" oninput="setSearch(this.value)">
+          <input type="text" id="searchBoxSidebar" placeholder="Name, code, family…" oninput="setSearch(this.value)">
         </div>
       </div>
     </div>
@@ -294,6 +294,10 @@ function toggleAllLevels(checked) {
 function setSearch(v) {
   filters.search = v.toLowerCase();
   page = 1;
+  const sb1 = document.getElementById('searchBox');
+  const sb2 = document.getElementById('searchBoxSidebar');
+  if(sb1 && sb1.value !== v) sb1.value = v;
+  if(sb2 && sb2.value !== v) sb2.value = v;
   applyFilters();
 }
 
@@ -317,6 +321,8 @@ function clearAllFilters() {
   // or we can just call buildSidebar() inside clearAllFilters() so it fully refreshes!
   const sb = document.getElementById('searchBox');
   if(sb) sb.value = '';
+  const sb2 = document.getElementById('searchBoxSidebar');
+  if(sb2) sb2.value = '';
   page = 1;
   buildSidebar();
   applyFilters();
@@ -613,24 +619,73 @@ function buildNetworkData() {
   NET.nodes.forEach((n,i) => nodeIndex[n.key] = i);
 
   NET.edges = [];
-  const crossLinks = ROOT.cross_chapter_links || [];
   const seenEdge = new Set();
+  
+  // Determine which books are currently selected
+  const activeBooks = filters.levels.has('_all4') ? ['A1','A2','B1','B2'] : Array.from(filters.levels);
 
-  crossLinks.filter(lk => !lk.unresolved).forEach(lk => {
-    const srcKey = 'ch'+lk.source.chapter+':'+lk.source.concept_key;
-    const tgtSec = lk.target.section_code;
-    if(!tgtSec) return;
-    const tgtKey = 'ch'+lk.target.chapter+':'+tgtSec;
-    const edgeKey = [srcKey,tgtKey].sort().join('>>');
-    if(!seenEdge.has(edgeKey) && nodeKeys.has(srcKey) && nodeKeys.has(tgtKey)) {
-      seenEdge.add(edgeKey);
-      NET.edges.push({
-        s: nodeIndex[srcKey],
-        t: nodeIndex[tgtKey],
-        type: lk.type,
-        levels: lk.present_in_books
-      });
-    }
+  fr.forEach(r => {
+    const tgtKey = r.chKey + ':' + r.recKey;
+    const raw = r._raw;
+    if(!raw) return;
+
+    // Helper to process grouped incoming edges
+    const addIncomingEdge = (edgeLevels, srcCh, srcKey, type) => {
+      // Restrictive Edge Filtering: only show edge if it exists in one of the active filter levels
+      if(activeBooks.length > 0) {
+        const hasVisibleLevel = edgeLevels.some(l => activeBooks.includes(l));
+        if(!hasVisibleLevel) return;
+      }
+
+      const fullSrcKey = 'ch' + srcCh + ':' + srcKey;
+      
+      // Both ends must be visible in the current network view
+      if(nodeKeys.has(fullSrcKey)) {
+        const edgeId = [fullSrcKey, tgtKey].sort().join('>>');
+        if(!seenEdge.has(edgeId)) {
+          seenEdge.add(edgeId);
+          NET.edges.push({
+            s: nodeIndex[fullSrcKey],
+            t: nodeIndex[tgtKey],
+            type: type,
+            levels: edgeLevels
+          });
+        }
+      }
+    };
+
+    // Helper to gather references from a per_book field
+    const gatherLinks = (perBookField, defaultType) => {
+      const field = raw[perBookField] || {};
+      const grouped = {};
+      
+      for(const book of Object.keys(field)) {
+        if(!field[book]) continue;
+        field[book].forEach(link => {
+          // Fallback through the 3 possible identifiers the guide mentions
+          const sKey = link.source_row_id_canonical || link.source_concept_key || link.source_section_code;
+          if(!sKey) return;
+          const sCh = link.source_chapter;
+          const sType = link.type || defaultType;
+          
+          const gKey = sCh + '::' + sKey + '::' + sType;
+          if(!grouped[gKey]) grouped[gKey] = { sCh, sKey, sType, levels: new Set() };
+          grouped[gKey].levels.add(book);
+        });
+      }
+      
+      for(const gKey in grouped) {
+        const g = grouped[gKey];
+        addIncomingEdge(Array.from(g.levels), g.sCh, g.sKey, g.sType);
+      }
+    };
+
+    // Extract exact source keys from all 5 typed incoming fields
+    gatherLinks('linked_from_per_book', 'link');
+    gatherLinks('cefr_descriptors_pointing_to_this_per_book', 'cefr_xref');
+    gatherLinks('orthography_rules_applying_to_this_per_book', 'ortho_xref');
+    gatherLinks('sociocultural_notes_referencing_this_per_book', 'socio_xref');
+    gatherLinks('learner_strategies_referencing_this_per_book', 'strategy_xref');
   });
 
   // Build legend
@@ -666,14 +721,13 @@ function runLayout() {
   if(NET.animFrame) cancelAnimationFrame(NET.animFrame);
   let iter = 0;
   function tick() {
-    // Cool down the layout smoothly over 200 iterations
-    let temp = Math.max(0.1, 1 - (iter / 200));
+    // Cool down the layout smoothly over 200 iterations, stopping entirely at 0
+    let temp = Math.max(0, 1 - (iter / 200));
     forceStep(temp);
     redrawNet();
     iter++;
-    // Keep running if we're dragging, otherwise decay quickly
+    // Keep running if we're dragging (to animate the dragged node) or if still decaying
     if(iter < 200 || NET.dragging) {
-      if(NET.dragging && iter > 150) iter = 100; // keep it warm while dragging
       NET.animFrame = requestAnimationFrame(tick);
     }
   }
@@ -686,7 +740,7 @@ function unpinAll() {
   notify("All nodes unpinned");
 }
 
-function updateCharge() { /* just re-run a few steps */ forceStep(); redrawNet(); }
+function updateCharge() { runLayout(); }
 
 function forceStep(temp = 1) {
   const nodes = NET.nodes;
@@ -810,11 +864,10 @@ function redrawNet() {
         ctx.lineWidth = 2.2 / zoom;
         ctx.globalAlpha = 0.9;
       } else {
-        ctx.strokeStyle = 'rgba(148,163,184,0.3)';
-        ctx.lineWidth = 0.8 / zoom;
+        ctx.strokeStyle = 'rgba(148,163,184,0.6)';
+        ctx.lineWidth = 1.5 / zoom;
         let alpha = 1;
         if (pathHighlight.size > 0) alpha = 0.1;
-        else if (hovNodes.size > 0) alpha = 0.1;
         ctx.globalAlpha = alpha;
       }
       
@@ -837,7 +890,6 @@ function redrawNet() {
 
     let dimmed = false;
     if (pathHighlight.size > 0) dimmed = !onPath;
-    else if (hovNodes.size > 0) dimmed = !isHovNode;
 
     ctx.globalAlpha = dimmed ? 0.12 : 1;
 
@@ -957,7 +1009,6 @@ netCanvas.addEventListener('mousedown', e => {
     } else {
       NET.dragging = hit;
       hit.pinned = true;
-      runLayout();
     }
   } else {
     NET.panning = true;

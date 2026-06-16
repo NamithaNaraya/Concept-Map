@@ -119,6 +119,27 @@
     <div class="view active" id="networkView">
       <canvas id="networkCanvas"></canvas>
 
+      <!-- Network Controls -->
+      <div id="netControls" class="glass" style="position:absolute; bottom:24px; left:24px; display:flex; flex-direction:column; gap:12px; padding:16px; border-radius:12px; font-size:12.5px; z-index:100; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--line);">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="showLabels" checked onchange="redrawNet()">
+          <span style="font-weight:600;">Show Concept Names</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="showEdges" checked onchange="redrawNet()">
+          <span style="font-weight:600;">Show Connection Lines</span>
+        </label>
+        <div style="height:1px; background:var(--line); margin:4px 0;"></div>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-weight:600; display:flex; justify-content:space-between;">Node Size <span id="nsVal" style="color:var(--ink-3);">10</span></span>
+          <input type="range" id="nodeSizeRange" min="4" max="25" value="10" oninput="document.getElementById('nsVal').innerText=this.value; updateCharge();">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-weight:600; display:flex; justify-content:space-between;">Spread <span id="chVal" style="color:var(--ink-3);">80</span></span>
+          <input type="range" id="chargeRange" min="10" max="300" value="80" oninput="document.getElementById('chVal').innerText=this.value; updateCharge();">
+        </label>
+      </div>
+
       <!-- Zoom Controls -->
       <div id="zoomctl">
         <button class="iconbtn glass" onclick="zoomNet(1.3)">+</button>
@@ -183,7 +204,7 @@
     </div>
 
     <div class="view" id="statsView">
-      <div id="statsContent" style="padding:24px; max-width:900px; overflow-y:auto; flex:1;"></div>
+      <div id="statsContent" style="padding:24px; overflow-y:auto; flex:1; width: 100%;"></div>
     </div>
 
   </main>
