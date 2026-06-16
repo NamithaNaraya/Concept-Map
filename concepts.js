@@ -176,6 +176,7 @@ function buildSidebar() {
     <div class="filter-section">
       <div class="filter-title" onclick="toggleFS(this)">📚 Chapter <span class="toggle">▾</span></div>
       <div class="filter-body" id="fs-chapters">
+        <div class="filter-actions"><a href="#" onclick="setAll('chapters', true, event)">All</a> | <a href="#" onclick="setAll('chapters', false, event)">None</a></div>
         ${Object.entries(CHAPTER_TITLES).filter(([ch])=>chapterCounts[ch]).map(([ch,title])=>`
           <label class="filter-row">
             <input type="checkbox" onchange="toggleFilter('chapters','${ch}',this.checked)" ${filters.chapters.has(ch) ? 'checked' : ''}>
@@ -189,6 +190,7 @@ function buildSidebar() {
     <div class="filter-section">
       <div class="filter-title" onclick="toggleFS(this)">🎓 CEFR Level <span class="toggle">▾</span></div>
       <div class="filter-body" id="fs-levels">
+        <div class="filter-actions"><a href="#" onclick="setAll('levels', true, event)">All</a> | <a href="#" onclick="setAll('levels', false, event)">None</a></div>
         ${LEVELS.map(l=>`
           <label class="filter-row">
             <input type="checkbox" onchange="toggleFilter('levels','${l}',this.checked)" ${filters.levels.has(l) ? 'checked' : ''}>
@@ -202,6 +204,7 @@ function buildSidebar() {
     <div class="filter-section">
       <div class="filter-title" onclick="toggleFS(this)">🏷 Kind <span class="toggle">▾</span></div>
       <div class="filter-body" id="fs-kinds">
+        <div class="filter-actions"><a href="#" onclick="setAll('kinds', true, event)">All</a> | <a href="#" onclick="setAll('kinds', false, event)">None</a></div>
         ${['leaf','family','container','family_with_direct_content'].filter(k=>kindCounts[k]).map(k=>`
           <label class="filter-row">
             <input type="checkbox" onchange="toggleFilter('kinds','${k}',this.checked)" ${filters.kinds.has(k) ? 'checked' : ''}>
@@ -216,6 +219,7 @@ function buildSidebar() {
     <div class="filter-section">
       <div class="filter-title" onclick="toggleFS(this)">⚡ Attributes <span class="toggle">▾</span></div>
       <div class="filter-body" id="fs-attrs">
+        <div class="filter-actions"><a href="#" onclick="setAll('attrs', true, event)">All</a> | <a href="#" onclick="setAll('attrs', false, event)">None</a></div>
         <label class="filter-row">
           <input type="checkbox" onchange="toggleFilter('asterisked','yes',this.checked)" ${filters.asterisked.has('yes') ? 'checked' : ''}>
           <span class="fr-label">⭐ Asterisked</span>
@@ -247,6 +251,7 @@ function buildSidebar() {
     <div class="filter-section">
       <div class="filter-title" onclick="toggleFS(this)">👨‍👩‍👧 Family (Top 20) <span class="toggle">▾</span></div>
       <div class="filter-body collapsed" id="fs-families">
+        <div class="filter-actions"><a href="#" onclick="setAll('families', true, event)">All</a> | <a href="#" onclick="setAll('families', false, event)">None</a></div>
         ${topFamilies.map(([fam,cnt])=>`
           <label class="filter-row">
             <input type="checkbox" onchange="toggleFilter('families','${CSS.escape(fam)}',this.checked)" data-family="${fam.replace(/"/g,'&quot;')}" ${filters.families.has(fam) ? 'checked' : ''}>
@@ -281,6 +286,49 @@ function toggleFilter(type, val, checked) {
     if(checked) filters[type].add(val);
     else filters[type].delete(val);
   }
+  page = 1;
+  applyFilters();
+}
+
+function setAll(group, checkAll, event) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  const container = document.getElementById('fs-' + group);
+  if (!container) return;
+  const cbs = container.querySelectorAll('input[type="checkbox"]');
+  
+  // Visually check/uncheck them
+  cbs.forEach(cb => cb.checked = checkAll);
+  
+  // Bulk update the sets
+  if (checkAll) {
+    if (group === 'chapters') filters.chapters = new Set(Object.keys(CHAPTER_TITLES));
+    if (group === 'levels') {
+      filters.levels = new Set(LEVELS);
+      filters.levels.add('_all4'); // If there is an '_all4' checkbox
+    }
+    if (group === 'kinds') filters.kinds = new Set(['leaf','family','container','family_with_direct_content']);
+    if (group === 'attrs') {
+      filters.asterisked = new Set(['yes', 'no']);
+      filters.hasLinks = new Set(['yes', 'no']);
+      filters.levels.add('_all4');
+    }
+    if (group === 'families') {
+      cbs.forEach(cb => filters.families.add(cb.getAttribute('data-family')));
+    }
+  } else {
+    if (group === 'attrs') {
+      filters.asterisked.clear();
+      filters.hasLinks.clear();
+      filters.levels.delete('_all4');
+    } else if (group === 'levels') {
+      filters.levels.clear();
+    } else {
+      filters[group].clear();
+    }
+  }
+  
   page = 1;
   applyFilters();
 }
@@ -961,13 +1009,14 @@ function redrawNet() {
     }
     ctx.globalAlpha = 1;
 
-    // Level indicator dashes (so they don't look like unlinked nodes)
-    if(n.present_in_books.length < 4 && !dimmed) {
+    // Level indicator dashes
+    const visibleLevels = n.present_in_books.filter(l => filters.levels.has(l));
+    if(visibleLevels.length > 0 && !dimmed) {
       const dashW = 6;
       const gap = 3;
-      const totalW = (n.present_in_books.length * dashW) + ((n.present_in_books.length - 1) * gap);
+      const totalW = (visibleLevels.length * dashW) + ((visibleLevels.length - 1) * gap);
       let startX = n.x - totalW/2;
-      n.present_in_books.forEach((l) => {
+      visibleLevels.forEach((l) => {
         ctx.fillStyle = LEVEL_COLOR[l];
         ctx.fillRect(startX, n.y + r + 5, dashW, 3);
         startX += dashW + gap;
