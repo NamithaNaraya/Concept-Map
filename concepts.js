@@ -77,7 +77,7 @@ function loadData() {
     btn.disabled = true;
     btn.textContent = 'Loading...';
   }
-  fetch('http://localhost:8000/concept_map_for_lesson_generation.json')
+  fetch('concept_map_for_lesson_generation.json')
     .then(res => {
       if(!res.ok) throw new Error("HTTP " + res.status);
       return res.json();
