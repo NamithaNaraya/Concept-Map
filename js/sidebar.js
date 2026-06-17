@@ -231,6 +231,7 @@ function clearAllFilters() {
 
 function applyFilters() {
   renderTable();
+  buildStatsView();
   if(activeTab === 'network') buildNetworkData();
   if(activeTab === 'radial') drawRadial();
   updateResultCount();
@@ -277,5 +278,5 @@ function updateResultCount() {
 function changeNetworkNodeType(type) {
   networkNodeType = type;
   networkWordLimit = 200; // reset limit when switching
-  buildNetworkData();
+  applyFilters();
 }

@@ -912,6 +912,26 @@ button.b:disabled {
   display: block
 }
 
+#radialView {
+  padding-top: 64px;
+  overflow: hidden;
+}
+
+#radialView.active {
+  display: flex;
+  flex-direction: column;
+}
+
+#statsView {
+  padding: 64px 0 0 0;
+  overflow: hidden;
+}
+
+#statsView.active {
+  display: flex;
+  flex-direction: column;
+}
+
 #networkView {
   padding-top: 0;
   overflow: hidden;

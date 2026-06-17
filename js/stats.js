@@ -1,5 +1,5 @@
 function buildStatsView() {
-  const fr = RECORDS;
+  const fr = filteredRecords();
   const byChapter = {};
   const byLevel = { A1:0, A2:0, B1:0, B2:0 };
   const byKind = {};

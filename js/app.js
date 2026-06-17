@@ -12,9 +12,6 @@ window.switchTab = function(tab) {
   document.getElementById(tab+'View').classList.add('active');
   activeTab = tab;
 
-  const nodeConfig = document.getElementById('networkNodeConfig');
-  if (nodeConfig) nodeConfig.style.display = tab === 'network' ? 'block' : 'none';
-
   const topbarControls = document.getElementById('topbarNetworkControls');
   if (topbarControls) topbarControls.style.display = tab === 'network' ? 'flex' : 'none';
 
