@@ -65,9 +65,9 @@ function closeCustomDropdown() {
   if (dropdown) dropdown.classList.remove('open');
 }
 
-function selectCustomModel(value, label) {
+function selectCustomModel(value, innerHTML) {
   selectedModelValue = value;
-  document.getElementById('customSelectLabel').innerText = label;
+  document.getElementById('customSelectLabel').innerHTML = innerHTML;
   
   // Update selected class in options
   const options = document.querySelectorAll('.custom-option');
@@ -89,7 +89,7 @@ function filterCustomModels() {
   options.forEach(opt => {
     const text = opt.innerText.toLowerCase();
     if (text.includes(input)) {
-      opt.style.display = 'block';
+      opt.style.display = 'flex'; // Changed to flex since options use flex layout
     } else {
       opt.style.display = 'none';
     }
@@ -120,7 +120,7 @@ function openChatSettings() {
   options.forEach(opt => {
     if (opt.getAttribute('data-value') === currentModel) {
       opt.classList.add('selected');
-      document.getElementById('customSelectLabel').innerText = opt.innerText;
+      document.getElementById('customSelectLabel').innerHTML = opt.innerHTML;
       found = true;
     } else {
       opt.classList.remove('selected');
@@ -132,10 +132,10 @@ function openChatSettings() {
     const optDiv = document.createElement('div');
     optDiv.className = 'custom-option selected';
     optDiv.setAttribute('data-value', currentModel);
-    optDiv.innerText = currentModel;
-    optDiv.onclick = () => selectCustomModel(currentModel, currentModel);
+    optDiv.innerHTML = `<span class="model-name">${currentModel}</span>`;
+    optDiv.onclick = function() { selectCustomModel(currentModel, this.innerHTML); };
     optionsContainer.appendChild(optDiv);
-    document.getElementById('customSelectLabel').innerText = currentModel;
+    document.getElementById('customSelectLabel').innerHTML = `<span class="model-name">${currentModel}</span>`;
   }
   
   document.getElementById('balanceDisplay').style.display = 'none';
@@ -168,18 +168,20 @@ async function refreshModelsList() {
           if (m.id.endsWith(':free') || m.id === 'openrouter/free') isFree = true;
           if (m.pricing && parseFloat(m.pricing.prompt) === 0 && parseFloat(m.pricing.completion) === 0) isFree = true;
           
-          let text = m.id + (m.pricing ? ` ($${m.pricing.prompt} / $${m.pricing.completion})` : '');
-          if (isFree) text += " 🆓";
+          let innerHTML = `<span class="model-name">${m.id}</span>`;
+          if (isFree) {
+              innerHTML += ` <span class="free-badge">FREE</span>`;
+          }
           
           const optDiv = document.createElement('div');
           optDiv.className = 'custom-option';
           if (m.id === selectedModelValue) {
               optDiv.className += ' selected';
-              document.getElementById('customSelectLabel').innerText = text;
+              document.getElementById('customSelectLabel').innerHTML = innerHTML;
           }
           optDiv.setAttribute('data-value', m.id);
-          optDiv.innerText = text;
-          optDiv.onclick = () => selectCustomModel(m.id, text);
+          optDiv.innerHTML = innerHTML;
+          optDiv.onclick = function() { selectCustomModel(m.id, this.innerHTML); };
           optionsContainer.appendChild(optDiv);
       });
   } catch (e) {
