@@ -301,3 +301,83 @@
   transition: opacity 0.2s ease;
 }
 .chat-btn-primary:hover { opacity: 0.9; }
+
+/* Custom Searchable Dropdown */
+.custom-select-container {
+  position: relative;
+  max-width: 260px;
+}
+.custom-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #111827;
+  user-select: none;
+  font-family: monospace;
+  height: 38px;
+  box-sizing: border-box;
+}
+.custom-select-trigger:hover {
+  border-color: #8b5cf6;
+}
+.custom-select-trigger span {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.custom-dropdown {
+  display: none;
+  position: absolute;
+  bottom: 42px; /* Open upwards since settings modal is small and bottom-aligned */
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 -10px 15px -3px rgba(0, 0, 0, 0.1), 0 -4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 2100;
+  padding: 6px;
+  width: 320px; /* Let it stretch wider for model names */
+}
+.custom-dropdown.open {
+  display: block;
+}
+.dropdown-search {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 6px 10px !important;
+  font-size: 12px;
+  box-sizing: border-box;
+  font-family: monospace;
+}
+.custom-options {
+  max-height: 200px;
+  overflow-y: auto;
+}
+.custom-option {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 4px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: monospace;
+}
+.custom-option:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+.custom-option.selected {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+  font-weight: 500;
+}
+

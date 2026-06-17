@@ -45,21 +45,98 @@ function downloadChat() {
   URL.revokeObjectURL(url);
 }
 
+// State for custom searchable dropdown
+let selectedModelValue = 'openai/gpt-4o-mini';
+
+function toggleCustomDropdown(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('customDropdown');
+  dropdown.classList.toggle('open');
+  if (dropdown.classList.contains('open')) {
+    const input = document.getElementById('modelSearchInput');
+    input.value = '';
+    filterCustomModels();
+    setTimeout(() => input.focus(), 50);
+  }
+}
+
+function closeCustomDropdown() {
+  const dropdown = document.getElementById('customDropdown');
+  if (dropdown) dropdown.classList.remove('open');
+}
+
+function selectCustomModel(value, label) {
+  selectedModelValue = value;
+  document.getElementById('customSelectLabel').innerText = label;
+  
+  // Update selected class in options
+  const options = document.querySelectorAll('.custom-option');
+  options.forEach(opt => {
+    if (opt.getAttribute('data-value') === value) {
+      opt.classList.add('selected');
+    } else {
+      opt.classList.remove('selected');
+    }
+  });
+  
+  closeCustomDropdown();
+}
+
+function filterCustomModels() {
+  const input = document.getElementById('modelSearchInput').value.toLowerCase();
+  const options = document.querySelectorAll('.custom-option');
+  
+  options.forEach(opt => {
+    const text = opt.innerText.toLowerCase();
+    if (text.includes(input)) {
+      opt.style.display = 'block';
+    } else {
+      opt.style.display = 'none';
+    }
+  });
+}
+
+// Close custom dropdown when clicking outside
+window.addEventListener('click', (e) => {
+  const container = document.getElementById('customModelSelectContainer');
+  if (container && !container.contains(e.target)) {
+    closeCustomDropdown();
+  }
+});
+
 function openChatSettings() {
   const modal = document.getElementById('chatSettingsModal');
   const keyInput = document.getElementById('openRouterKeyInput');
-  const modelSelect = document.getElementById('openRouterModelSelect');
   keyInput.value = getOpenRouterKey();
   
-  // Set the current model in the dropdown if it exists
-  const currentModel = getOpenRouterModel();
-  if (!Array.from(modelSelect.options).some(o => o.value === currentModel)) {
-      const opt = document.createElement('option');
-      opt.value = currentModel;
-      opt.innerText = currentModel;
-      modelSelect.appendChild(opt);
+  // Set the current model
+  const currentModel = getOpenRouterModel() || 'openai/gpt-4o-mini';
+  selectedModelValue = currentModel;
+  
+  // Find if it exists in the list, otherwise add it
+  const optionsContainer = document.getElementById('customOptions');
+  let found = false;
+  const options = optionsContainer.querySelectorAll('.custom-option');
+  options.forEach(opt => {
+    if (opt.getAttribute('data-value') === currentModel) {
+      opt.classList.add('selected');
+      document.getElementById('customSelectLabel').innerText = opt.innerText;
+      found = true;
+    } else {
+      opt.classList.remove('selected');
+    }
+  });
+  
+  if (!found) {
+    // Dynamically append current model if not in the default options list
+    const optDiv = document.createElement('div');
+    optDiv.className = 'custom-option selected';
+    optDiv.setAttribute('data-value', currentModel);
+    optDiv.innerText = currentModel;
+    optDiv.onclick = () => selectCustomModel(currentModel, currentModel);
+    optionsContainer.appendChild(optDiv);
+    document.getElementById('customSelectLabel').innerText = currentModel;
   }
-  modelSelect.value = currentModel;
   
   document.getElementById('balanceDisplay').style.display = 'none';
   modal.classList.add('open');
@@ -71,9 +148,8 @@ function closeChatSettings() {
 
 function saveChatSettings() {
   const keyInput = document.getElementById('openRouterKeyInput');
-  const modelSelect = document.getElementById('openRouterModelSelect');
   saveOpenRouterKey(keyInput.value);
-  saveOpenRouterModel(modelSelect.value);
+  saveOpenRouterModel(selectedModelValue);
   closeChatSettings();
 }
 
@@ -84,19 +160,28 @@ async function refreshModelsList() {
   btn.disabled = true;
   try {
       const models = await fetchOpenRouterModelsAPI();
-      const select = document.getElementById('openRouterModelSelect');
-      const currentModel = select.value;
-      select.innerHTML = '';
+      const optionsContainer = document.getElementById('customOptions');
+      optionsContainer.innerHTML = '';
+      
       models.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m.id;
-          opt.innerText = m.id + (m.pricing ? ` ($${m.pricing.prompt} / $${m.pricing.completion})` : '');
-          select.appendChild(opt);
+          let isFree = false;
+          if (m.id.endsWith(':free') || m.id === 'openrouter/free') isFree = true;
+          if (m.pricing && parseFloat(m.pricing.prompt) === 0 && parseFloat(m.pricing.completion) === 0) isFree = true;
+          
+          let text = m.id + (m.pricing ? ` ($${m.pricing.prompt} / $${m.pricing.completion})` : '');
+          if (isFree) text += " 🆓";
+          
+          const optDiv = document.createElement('div');
+          optDiv.className = 'custom-option';
+          if (m.id === selectedModelValue) {
+              optDiv.className += ' selected';
+              document.getElementById('customSelectLabel').innerText = text;
+          }
+          optDiv.setAttribute('data-value', m.id);
+          optDiv.innerText = text;
+          optDiv.onclick = () => selectCustomModel(m.id, text);
+          optionsContainer.appendChild(optDiv);
       });
-      // Try to reselect the previously selected model
-      if (Array.from(select.options).some(o => o.value === currentModel)) {
-          select.value = currentModel;
-      }
   } catch (e) {
       alert("Could not fetch models: " + e.message);
   } finally {
