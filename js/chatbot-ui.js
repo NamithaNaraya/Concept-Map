@@ -1,7 +1,7 @@
 // js/chatbot-ui.js
 
 let chatHistory = [
-  { role: 'system', content: 'You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.' }
+  { role: 'system', content: 'IMPORTANT: Always respond in the same language that the user asks the question in. If the user asks in English, you must reply in English. If they ask in French, reply in French. You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.' }
 ];
 
 let currentContextName = null;
@@ -19,7 +19,7 @@ function toggleMaximizeChat() {
 function clearChatSession() {
   if(!confirm("Are you sure you want to clear the chat history?")) return;
   chatHistory = [
-    { role: 'system', content: 'You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.' }
+    { role: 'system', content: 'IMPORTANT: Always respond in the same language that the user asks the question in. If the user asks in English, you must reply in English. If they ask in French, reply in French. You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.' }
   ];
   document.getElementById('chatMessages').innerHTML = '<div class="chat-bubble assistant">Bonjour! I am your CEFR French Tutor. How can I help you today?</div>';
   if (currentContextName) {
@@ -235,9 +235,10 @@ window.setChatContext = function(conceptName, chapterStr, levelArr, rawJSON) {
 Currently, they are looking at the concept "${conceptName}" (Chapter: ${chapterStr}, Levels: ${levelArr ? levelArr.join(', ') : 'N/A'}). 
 
 CRITICAL RULES FOR YOU:
-1. You MUST ONLY answer using the provided JSON data below.
-2. DO NOT hallucinate or use any outside knowledge that is not explicitly inside the JSON data.
-3. If the user asks for something that is not in the JSON data below, you must reply: "I cannot answer this as the information is not present in the selected concept's data."
+1. Always respond in the same language that the user asks the question in (e.g., if they ask in English, answer in English; if they ask in French, answer in French).
+2. You MUST ONLY answer using the provided JSON data below.
+3. DO NOT hallucinate or use any outside knowledge that is not explicitly inside the JSON data.
+4. If the user asks for something that is not in the JSON data below, you must reply: "I cannot answer this as the information is not present in the selected concept's data."
 
 RAW JSON DATA FOR SELECTED CONCEPT:
 ${rawJSON || 'No detailed JSON data provided.'}
@@ -252,7 +253,7 @@ window.clearChatContext = function() {
   
   // Reset system prompt to default
   let sysMsg = chatHistory.find(m => m.role === 'system');
-  sysMsg.content = 'You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.';
+  sysMsg.content = 'IMPORTANT: Always respond in the same language that the user asks the question in. If the user asks in English, you must reply in English. If they ask in French, reply in French. You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.';
 }
 
 function renderMessage(role, text) {
@@ -260,11 +261,15 @@ function renderMessage(role, text) {
   const div = document.createElement('div');
   div.className = `chat-bubble ${role}`;
   
-  // Basic markdown to HTML (just for bolding and line breaks for now)
-  let htmlText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  htmlText = htmlText.replace(/\n/g, '<br>');
+  if (window.marked) {
+    div.innerHTML = marked.parse(text);
+  } else {
+    // Fallback: Basic markdown to HTML (just for bolding and line breaks)
+    let htmlText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    htmlText = htmlText.replace(/\n/g, '<br>');
+    div.innerHTML = htmlText;
+  }
   
-  div.innerHTML = htmlText;
   container.appendChild(div);
   
   // Scroll to bottom
@@ -289,24 +294,126 @@ async function handleChatSend() {
   input.value = '';
   btn.disabled = true;
   
-  // Loading bubble
+  // Create assistant bubble for streaming response
   const container = document.getElementById('chatMessages');
-  const loadingDiv = document.createElement('div');
-  loadingDiv.className = 'chat-bubble assistant loading';
-  loadingDiv.innerHTML = '<span style="font-size:12px; opacity:0.7">Typing...</span>';
-  container.appendChild(loadingDiv);
+  const assistantBubble = document.createElement('div');
+  assistantBubble.className = 'chat-bubble assistant';
+  assistantBubble.innerHTML = '<span style="font-size:12px; opacity:0.7">Typing...</span>';
+  container.appendChild(assistantBubble);
   container.scrollTop = container.scrollHeight;
   
+  let fullResponse = "";
+  
   try {
-    const aiResponse = await callOpenRouter(chatHistory);
-    // Remove loading
-    container.removeChild(loadingDiv);
+    const key = getOpenRouterKey();
+    const model = getOpenRouterModel();
     
-    renderMessage('assistant', aiResponse);
-    chatHistory.push({ role: 'assistant', content: aiResponse });
+    // Construct messagesToSend with suffix instruction to guarantee response language
+    const messagesToSend = chatHistory.map((msg, idx) => {
+      if (idx === chatHistory.length - 1 && msg.role === 'user') {
+        const lang = detectLanguage(msg.content);
+        const suffix = lang === 'en'
+          ? "\n\n(IMPORTANT: Respond entirely in English. Do not write any French explanations unless requested.)"
+          : "\n\n(IMPORTANT: Réponds en français. Ne réponds pas en anglais.)";
+        return { role: msg.role, content: msg.content + suffix };
+      }
+      return msg;
+    });
+
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'HTTP-Referer': window.location.href,
+        'X-Title': 'French CEFR Concept Explorer',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: messagesToSend,
+        stream: true
+      })
+    });
+    
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`API Error: ${response.status} - ${err}`);
+    }
+    
+    // Clear typing text
+    assistantBubble.innerHTML = "";
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // keep partial line in buffer
+      
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (!cleanLine) continue;
+        if (cleanLine === "data: [DONE]") continue;
+        if (cleanLine.startsWith("data: ")) {
+          try {
+            const json = JSON.parse(cleanLine.substring(6));
+            const content = json.choices[0]?.delta?.content || "";
+            if (content) {
+              fullResponse += content;
+              if (window.marked) {
+                assistantBubble.innerHTML = marked.parse(fullResponse);
+              } else {
+                let htmlText = fullResponse.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                htmlText = htmlText.replace(/\n/g, '<br>');
+                assistantBubble.innerHTML = htmlText;
+              }
+              container.scrollTop = container.scrollHeight;
+            }
+          } catch (err) {
+            console.error("Error parsing stream line:", err);
+          }
+        }
+      }
+    }
+    
+    // Parse remainder in buffer
+    if (buffer && buffer.trim().startsWith("data: ")) {
+      const cleanLine = buffer.trim();
+      if (cleanLine !== "data: [DONE]") {
+        try {
+          const json = JSON.parse(cleanLine.substring(6));
+          const content = json.choices[0]?.delta?.content || "";
+          if (content) {
+            fullResponse += content;
+            if (window.marked) {
+              assistantBubble.innerHTML = marked.parse(fullResponse);
+            } else {
+              let htmlText = fullResponse.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+              htmlText = htmlText.replace(/\n/g, '<br>');
+              assistantBubble.innerHTML = htmlText;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    
+    chatHistory.push({ role: 'assistant', content: fullResponse });
   } catch (error) {
-    container.removeChild(loadingDiv);
-    renderMessage('assistant', `⚠️ Error: ${error.message}`);
+    if (assistantBubble.innerHTML === "" || assistantBubble.innerHTML.includes("Typing...")) {
+      assistantBubble.innerHTML = `⚠️ Error: ${error.message}`;
+    } else {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.color = 'var(--bad)';
+      errorDiv.style.marginTop = '8px';
+      errorDiv.style.fontSize = '12.5px';
+      errorDiv.innerHTML = `⚠️ Stream Interrupted: ${error.message}`;
+      assistantBubble.appendChild(errorDiv);
+    }
   } finally {
     btn.disabled = false;
   }
@@ -324,3 +431,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+function detectLanguage(text) {
+  const clean = text.toLowerCase();
+  
+  // English common words/pronouns
+  const englishCount = (clean.match(/\b(the|be|to|of|and|a|in|that|have|i|it|for|not|on|with|he|as|you|do|at|this|but|his|by|from|they|we|say|her|she|or|an|will|my|one|all|would|there|their|what|so|up|out|if|about|who|get|which|go|me|when|make|can|like|time|no|just|him|know|take|people|into|year|your|good|some|could|them|see|other|than|then|now|look|only|come|its|over|think|also|back|after|use|two|how|our|work|first|well|way|even|new|want|because|any|these|give|day|most|us)\b/g) || []).length;
+  
+  // French common words/pronouns
+  const frenchCount = (clean.match(/\b(le|la|les|de|des|un|une|et|en|que|est|dans|pour|qui|ce|il|elle|nous|vous|ils|elles|je|tu|on|mon|ma|mes|ton|ta|tes|son|sa|ses|notre|votre|leur|leurs|mais|ou|et|donc|or|ni|car|avec|sans|sur|sous|dans|par|pour|quand|comme|si|plus|moins|très|bien|trop|assez|tout|tous|toute|toutes|fait|faire|dire|aller|voir|savoir|pouvoir|vouloir|devoir|falloir|ceux|celles|celui|celle|ceci|cela|ça|ici|là|non|oui|moi|toi|lui|eux)\b/g) || []).length;
+
+  if (englishCount > frenchCount) return 'en';
+  if (frenchCount > englishCount) return 'fr';
+  
+  // Fallback: search for English characters/questions
+  const hasEnglishIndicator = /\b(what|how|why|where|who|are|is|does|did|can|explain|lexicon|dataset|concept|concepts|level)\b/i.test(clean);
+  return hasEnglishIndicator ? 'en' : 'fr';
+}

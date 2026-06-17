@@ -406,3 +406,97 @@
   overflow: hidden;
 }
 
+/* --- Premium Markdown Styles Inside Chat Bubbles --- */
+.chat-bubble p {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+.chat-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+/* Lists */
+.chat-bubble ul,
+.chat-bubble ol {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+.chat-bubble li {
+  margin-bottom: 4px;
+}
+.chat-bubble li:last-child {
+  margin-bottom: 0;
+}
+
+/* Inline Code */
+.chat-bubble code {
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 5px;
+  border-radius: 4px;
+  word-break: break-word;
+}
+.chat-bubble.user code {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Block Code */
+.chat-bubble pre {
+  margin: 10px 0;
+  padding: 12px;
+  background: #1e1e2e;
+  border-radius: 8px;
+  overflow-x: auto;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.chat-bubble pre code {
+  background: transparent;
+  padding: 0;
+  color: #cdd6f4;
+  font-size: 12.5px;
+  word-break: normal;
+  white-space: pre;
+}
+
+/* Tables */
+.chat-bubble table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.chat-bubble th,
+.chat-bubble td {
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  text-align: left;
+}
+.chat-bubble th {
+  background: rgba(0, 0, 0, 0.03);
+  font-weight: 600;
+  color: #111827;
+}
+.chat-bubble tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.01);
+}
+
+/* User Specific Table Styles */
+.chat-bubble.user table {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.chat-bubble.user th,
+.chat-bubble.user td {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+.chat-bubble.user th {
+  background: rgba(255, 255, 255, 0.1);
+}
+
