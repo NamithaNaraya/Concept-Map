@@ -54,6 +54,7 @@ function renderPager(cur, max) {
     <button onclick="gotoPage(${max})" ${cur>=max?'disabled':''}>»</button>
   `;
 }
+
 function gotoPage(p) { page = p; renderTable(); }
 function escKey(k) { return (k||'').toString().replace(/'/g,"\\'"); }
 
@@ -64,11 +65,6 @@ function selectRecord(chKey, recKey) {
   if(!rawC) return;
   const rec = RECORDS.find(r=>r.chKey===chKey && r.recKey===recKey);
   showNodeInfo(rec, rawC);
-  
-  // Update Chatbot Context
-  if (window.setChatContext) {
-    window.setChatContext(rec.denomination_canonical || rec.section_code, rec.chapter, rec.present_in_books);
-  }
   
   // Switch to network and highlight if in network view
   if(activeTab === 'network') {

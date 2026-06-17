@@ -129,6 +129,10 @@ function showNodeInfo(rec, rawC) {
   const detailBody = document.getElementById('detailBody');
   detailBody.style.display = 'block';
   detailBody.innerHTML = html;
+  
+  if (window.setChatContext) {
+    window.setChatContext(rec.denomination_canonical || rec.section_code, rec.chapter, rec.present_in_books, JSON.stringify(rawC, null, 2));
+  }
 }
 
 function closeNodeInfo() {
