@@ -11,6 +11,40 @@ function toggleChat() {
   panel.classList.toggle('open');
 }
 
+function toggleMaximizeChat() {
+  const panel = document.getElementById('chatbotPanel');
+  panel.classList.toggle('maximized');
+}
+
+function clearChatSession() {
+  if(!confirm("Are you sure you want to clear the chat history?")) return;
+  chatHistory = [
+    { role: 'system', content: 'You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.' }
+  ];
+  document.getElementById('chatMessages').innerHTML = '<div class="chat-bubble assistant">Bonjour! I am your CEFR French Tutor. How can I help you today?</div>';
+  if (currentContextName) {
+      window.clearChatContext(); // Also clear the context just in case
+  }
+}
+
+function downloadChat() {
+  const messagesText = chatHistory
+      .filter(m => m.role !== 'system')
+      .map(m => `[${m.role.toUpperCase()}]\n${m.content}\n`)
+      .join('\n----------------------------------------\n\n');
+  if(!messagesText.trim()) { alert('No chat history to download.'); return; }
+  
+  const blob = new Blob([messagesText], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cefr-tutor-chat.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function openChatSettings() {
   const modal = document.getElementById('chatSettingsModal');
   const keyInput = document.getElementById('openRouterKeyInput');

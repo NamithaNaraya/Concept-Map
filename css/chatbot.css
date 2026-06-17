@@ -56,6 +56,21 @@
   pointer-events: all;
 }
 
+.chatbot-panel.maximized {
+  position: fixed;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%) scale(1);
+  right: auto;
+  bottom: auto;
+  width: 90vw;
+  max-width: 1200px;
+  height: calc(100vh - 80px);
+  max-height: none;
+  z-index: 1050;
+  transition: all 0.3s ease;
+}
+
 .chatbot-header {
   padding: 16px 20px;
   background: rgba(249, 250, 251, 0.9);
