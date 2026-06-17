@@ -15,6 +15,9 @@ window.switchTab = function(tab) {
   const nodeConfig = document.getElementById('networkNodeConfig');
   if (nodeConfig) nodeConfig.style.display = tab === 'network' ? 'block' : 'none';
 
+  const topbarControls = document.getElementById('topbarNetworkControls');
+  if (topbarControls) topbarControls.style.display = tab === 'network' ? 'flex' : 'none';
+
   if(tab === 'network') {
     setTimeout(()=>{ resizeNetCanvas(); buildNetworkData(); }, 50);
   } else if(tab === 'radial') {

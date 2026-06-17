@@ -182,6 +182,80 @@
           <button class="header-tab" data-tab="radial">Radial</button>
           <button class="header-tab" data-tab="stats">Stats</button>
         </div>
+
+        <!-- Network Controls in Topbar -->
+        <div id="topbarNetworkControls" class="glass"
+          style="display:flex; align-items:center; gap:16px; padding:6px 14px; border-radius:10px; font-size:12px; height: 38px; box-sizing: border-box;">
+          <label
+            style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600; white-space:nowrap; margin: 0; user-select:none;">
+            <input type="checkbox" id="showLabels" onchange="redrawNet()"> Show Names
+          </label>
+          <label
+            style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600; white-space:nowrap; margin: 0; user-select:none;">
+            <input type="checkbox" id="showEdges" checked onchange="redrawNet()"> Show Connection Lines
+          </label>
+          <div style="width:1px; height:16px; background:var(--line);"></div>
+
+          <label
+            style="display:flex; align-items:center; gap:6px; font-weight:600; white-space:nowrap; margin: 0; user-select:none;">
+            Node Size:
+            <input type="range" id="nodeSizeRange" min="4" max="25" value="10" style="width:70px;"
+              oninput="updateCharge()">
+          </label>
+
+          <label
+            style="display:flex; align-items:center; gap:6px; font-weight:600; white-space:nowrap; margin: 0; user-select:none;">
+            Spread:
+            <input type="range" id="chargeRange" min="10" max="300" value="80" style="width:70px;"
+              oninput="updateCharge()">
+          </label>
+
+          <div style="width:1px; height:16px; background:var(--line);"></div>
+
+          <!-- Legend Hover Container -->
+          <div class="legend-hover-container"
+            style="position:relative; cursor:pointer; display:flex; align-items:center; gap:4px; font-weight:600; font-size:12px; user-select:none;">
+            <span>ℹ️ Legend</span>
+            <div class="legend-tooltip glass"
+              style="position:absolute; top:28px; right:0; display:none; flex-direction:column; gap:8px; padding:12px; border-radius:8px; width:180px; z-index:1100; font-size:11.5px; text-align:left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+              <strong style="font-size:12px; color:var(--ink); margin-bottom:4px; display:block;">Legend</strong>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div
+                  style="width:12px; height:12px; border-radius:50%; border:2px dashed #94a3b8; box-sizing:border-box;">
+                </div>
+                <span>Asterisked Concept</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:12px; height:12px; border-radius:50%; background:#94a3b8;"></div>
+                <span>Regular Concept</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:14px; height:2px; background:#94a3b8;"></div>
+                <span>Connection / Link</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:1px; height:16px; background:var(--line);"></div>
+
+          <!-- Zoom Controls -->
+          <div style="display:flex; align-items:center; gap:4px; font-weight:600; font-size:12px; user-select:none;">
+            <button class="chat-btn-secondary" onclick="zoomNet(1.3)" title="Zoom In"
+              style="padding:2px 8px; font-size:13px; height:24px; display:flex; align-items:center; font-weight:600; border-radius:4px; margin: 0; border:none; cursor:pointer;">+</button>
+            <button class="chat-btn-secondary" onclick="zoomNet(0.77)" title="Zoom Out"
+              style="padding:2px 8px; font-size:13px; height:24px; display:flex; align-items:center; font-weight:600; border-radius:4px; margin: 0; border:none; cursor:pointer;">−</button>
+            <button class="chat-btn-secondary" onclick="resetZoomNet()" title="Reset Zoom"
+              style="padding:2px 8px; font-size:13px; height:24px; display:flex; align-items:center; font-weight:600; border-radius:4px; margin: 0; border:none; cursor:pointer;">⊙</button>
+            <button class="chat-btn-secondary" onclick="runLayout()" title="Recalculate Layout"
+              style="padding:2px 8px; font-size:13px; height:24px; display:flex; align-items:center; font-weight:600; border-radius:4px; margin: 0; border:none; cursor:pointer;">⟳</button>
+          </div>
+
+          <div style="width:1px; height:16px; background:var(--line);"></div>
+
+          <button class="chat-btn-secondary" onclick="resetNetworkView()"
+            style="padding:2px 8px; font-size:11.5px; height:24px; display:flex; align-items:center; font-weight:600; color:#4f46e5; background:#e0e7ff; border-radius:4px; margin: 0; border:none; cursor:pointer;">Reset
+            View</button>
+        </div>
       </div>
 
 
@@ -189,59 +263,6 @@
       <!-- VIEWS -->
       <div class="view active" id="networkView">
         <canvas id="networkCanvas"></canvas>
-
-        <!-- Network Controls -->
-        <div id="netControls" class="glass"
-          style="position:absolute; bottom:24px; left:24px; display:flex; flex-direction:column; gap:12px; padding:16px; border-radius:12px; font-size:12.5px; z-index:100; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--line);">
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-            <input type="checkbox" id="showLabels" onchange="redrawNet()">
-            <span style="font-weight:600;">Show Concept Names</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-            <input type="checkbox" id="showEdges" checked onchange="redrawNet()">
-            <span style="font-weight:600;">Show Connection Lines</span>
-          </label>
-          <div style="height:1px; background:var(--line); margin:4px 0;"></div>
-          <label style="display:flex; flex-direction:column; gap:6px;">
-            <span style="font-weight:600; display:flex; justify-content:space-between;">Node Size <span id="nsVal"
-                style="color:var(--ink-3);">10</span></span>
-            <input type="range" id="nodeSizeRange" min="4" max="25" value="10"
-              oninput="document.getElementById('nsVal').innerText=this.value; updateCharge();">
-          </label>
-          <label style="display:flex; flex-direction:column; gap:6px;">
-            <span style="font-weight:600; display:flex; justify-content:space-between;">Spread <span id="chVal"
-                style="color:var(--ink-3);">80</span></span>
-            <input type="range" id="chargeRange" min="10" max="300" value="80"
-              oninput="document.getElementById('chVal').innerText=this.value; updateCharge();">
-          </label>
-          <div style="height:1px; background:var(--line); margin:4px 0;"></div>
-          <div style="font-size:11.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:6px;">
-            <strong style="color:var(--ink); font-size:12px;">Legend</strong>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <div
-                style="width:12px; height:12px; border-radius:50%; border:2px dashed #94a3b8; box-sizing:border-box;">
-              </div> Asterisked Concept
-            </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <div style="width:12px; height:12px; border-radius:50%; background:#94a3b8;"></div> Regular Concept
-            </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <div style="width:14px; height:2px; background:#94a3b8;"></div> Connection / Link
-            </div>
-          </div>
-          <div style="height:1px; background:var(--line); margin:4px 0;"></div>
-          <button onclick="resetNetworkView()"
-            style="background:var(--accent); color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600;">Reset
-            View</button>
-        </div>
-
-        <!-- Zoom Controls -->
-        <div id="zoomctl">
-          <button class="iconbtn glass" onclick="zoomNet(1.3)">+</button>
-          <button class="iconbtn glass" onclick="zoomNet(0.77)">−</button>
-          <button class="iconbtn glass" onclick="resetZoomNet()">⊙</button>
-          <button class="iconbtn glass" onclick="runLayout()">⟳</button>
-        </div>
 
         <!-- Detail Panel -->
         <div id="detail">
@@ -319,7 +340,8 @@
       <div class="help-section">
         <h3>🚀 Getting Started</h3>
         <p>Click <strong>Fetch Data from Backend</strong> to automatically download the
-          <code>concept_map_for_lesson_generation.json</code> file from the server.</p>
+          <code>concept_map_for_lesson_generation.json</code> file from the server.
+        </p>
       </div>
       <div class="help-close">
         <button class="btn primary" onclick="closeHelp()">Got it</button>
@@ -389,13 +411,26 @@
         </div>
         <div class="chatbot-header-actions">
           <button class="chat-icon-btn" onclick="downloadChat()" title="Download Chat">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
           </button>
           <button class="chat-icon-btn" onclick="clearChatSession()" title="New Session">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <polyline points="3 3 3 8 8 8"></polyline>
+            </svg>
           </button>
           <button class="chat-icon-btn" onclick="toggleMaximizeChat()" title="Expand Chat">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+              </path>
+            </svg>
           </button>
           <button class="chat-icon-btn" onclick="openChatSettings()" title="Settings">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -442,31 +477,47 @@
       <p>Please enter your OpenRouter API key. It will be securely stored in your browser's local storage and never sent
         to our servers.</p>
       <input type="password" id="openRouterKeyInput" class="chat-settings-input" placeholder="sk-or-v1-...">
-      
+
       <p style="margin-top: 15px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">AI Model</p>
       <div style="display:flex; gap: 8px; margin-bottom: 15px; align-items: center; position: relative;">
-         <!-- Custom Searchable Dropdown -->
-         <div class="custom-select-container" id="customModelSelectContainer" style="flex:1;">
-            <div class="custom-select-trigger" onclick="toggleCustomDropdown(event)">
-               <span id="customSelectLabel">openai/gpt-4o-mini (Default)</span>
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 5px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <!-- Custom Searchable Dropdown -->
+        <div class="custom-select-container" id="customModelSelectContainer" style="flex:1;">
+          <div class="custom-select-trigger" onclick="toggleCustomDropdown(event)">
+            <span id="customSelectLabel">openai/gpt-4o-mini (Default)</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" style="margin-left: 5px;">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="custom-dropdown" id="customDropdown" onclick="event.stopPropagation()">
+            <input type="text" id="modelSearchInput" class="chat-settings-input dropdown-search"
+              placeholder="Type to filter..." onkeyup="filterCustomModels()">
+            <div class="custom-options" id="customOptions">
+              <div class="custom-option selected" data-value="openai/gpt-4o-mini"
+                onclick="selectCustomModel('openai/gpt-4o-mini', this.innerHTML)"><span
+                  class="model-name">openai/gpt-4o-mini (Default)</span></div>
+              <div class="custom-option" data-value="anthropic/claude-3-haiku"
+                onclick="selectCustomModel('anthropic/claude-3-haiku', this.innerHTML)"><span
+                  class="model-name">anthropic/claude-3-haiku</span></div>
+              <div class="custom-option" data-value="google/gemini-flash-1.5-8b"
+                onclick="selectCustomModel('google/gemini-flash-1.5-8b', this.innerHTML)"><span
+                  class="model-name">google/gemini-flash-1.5-8b</span></div>
+              <div class="custom-option" data-value="meta-llama/llama-3.1-8b-instruct"
+                onclick="selectCustomModel('meta-llama/llama-3.1-8b-instruct', this.innerHTML)"><span
+                  class="model-name">meta-llama/llama-3.1-8b-instruct</span></div>
             </div>
-            <div class="custom-dropdown" id="customDropdown" onclick="event.stopPropagation()">
-               <input type="text" id="modelSearchInput" class="chat-settings-input dropdown-search" placeholder="Type to filter..." onkeyup="filterCustomModels()">
-               <div class="custom-options" id="customOptions">
-                   <div class="custom-option selected" data-value="openai/gpt-4o-mini" onclick="selectCustomModel('openai/gpt-4o-mini', this.innerHTML)"><span class="model-name">openai/gpt-4o-mini (Default)</span></div>
-                   <div class="custom-option" data-value="anthropic/claude-3-haiku" onclick="selectCustomModel('anthropic/claude-3-haiku', this.innerHTML)"><span class="model-name">anthropic/claude-3-haiku</span></div>
-                   <div class="custom-option" data-value="google/gemini-flash-1.5-8b" onclick="selectCustomModel('google/gemini-flash-1.5-8b', this.innerHTML)"><span class="model-name">google/gemini-flash-1.5-8b</span></div>
-                   <div class="custom-option" data-value="meta-llama/llama-3.1-8b-instruct" onclick="selectCustomModel('meta-llama/llama-3.1-8b-instruct', this.innerHTML)"><span class="model-name">meta-llama/llama-3.1-8b-instruct</span></div>
-               </div>
-            </div>
-         </div>
-         <button class="chat-btn-secondary" onclick="refreshModelsList()" title="Fetch all available models" style="height: 38px;">🔄 Fetch</button>
+          </div>
+        </div>
+        <button class="chat-btn-secondary" onclick="refreshModelsList()" title="Fetch all available models"
+          style="height: 38px;">🔄 Fetch</button>
       </div>
 
       <div style="margin-top: 15px; font-size: 12.5px;">
-        <button class="chat-btn-secondary" onclick="checkBalance()" style="padding: 4px 10px; font-size: 12px;">Check Balance / Limits</button>
-        <div id="balanceDisplay" style="margin-top: 8px; color: var(--ink-2); display:none; padding: 8px; background: var(--panel-2); border-radius: 6px; border: 1px solid var(--line);"></div>
+        <button class="chat-btn-secondary" onclick="checkBalance()" style="padding: 4px 10px; font-size: 12px;">Check
+          Balance / Limits</button>
+        <div id="balanceDisplay"
+          style="margin-top: 8px; color: var(--ink-2); display:none; padding: 8px; background: var(--panel-2); border-radius: 6px; border: 1px solid var(--line);">
+        </div>
       </div>
 
       <div class="chat-settings-actions" style="margin-top: 20px;">

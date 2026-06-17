@@ -1052,3 +1052,8 @@ button.b:disabled {
   flex-shrink: 0;
   box-shadow: 0 0 4px currentColor;
 }
+
+/* Legend Tooltip in Topbar */
+.legend-hover-container:hover .legend-tooltip {
+  display: flex !important;
+}
