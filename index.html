@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Concept Map Explorer — French CEFR Reference</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="concepts.css"> <!-- Old CSS for fallback/custom things -->
-<link rel="stylesheet" href="concepts-ui.css"> <!-- New CSS -->
+<link rel="stylesheet" href="css/concepts.css"> <!-- Old CSS for fallback/custom things -->
+<link rel="stylesheet" href="css/concepts-ui.css"> <!-- New CSS -->
 <link rel="stylesheet" href="css/chatbot.css"> <!-- Chatbot CSS -->
 <link rel="icon" href="data:,"> <!-- Prevent favicon 404 -->
 </head>
@@ -224,7 +224,16 @@
   </div>
 </div>
 
-<script src="concepts.js"></script>
+<script src="js/globals.js"></script>
+<script src="js/data.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/table.js"></script>
+<script src="js/network.js"></script>
+<script src="js/path_finder.js"></script>
+<script src="js/radial.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
 <script>
   function togglePanel() {
     document.getElementById('panel').classList.toggle('collapsed');
