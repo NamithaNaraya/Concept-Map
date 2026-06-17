@@ -491,6 +491,12 @@ function selectRecord(chKey, recKey) {
   if(!rawC) return;
   const rec = RECORDS.find(r=>r.chKey===chKey && r.recKey===recKey);
   showNodeInfo(rec, rawC);
+  
+  // Update Chatbot Context
+  if (window.setChatContext) {
+    window.setChatContext(rec.denomination_canonical || rec.section_code, rec.chapter, rec.present_in_books);
+  }
+  
   // Switch to network and highlight if in network view
   if(activeTab === 'network') {
     const node = NET.nodes.find(n => n.chKey===chKey && n.recKey===recKey);
