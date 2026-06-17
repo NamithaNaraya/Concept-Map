@@ -22,7 +22,6 @@ function clearChatSession() {
     { role: 'system', content: 'IMPORTANT: Always respond in the same language that the user asks the question in. If the user asks in English, you must reply in English. If they ask in French, reply in French. You are an expert French teacher and assistant. The user is exploring a dataset of French CEFR concepts (A1 to B2). Answer their questions helpfully and concisely. If they ask about a specific concept they are looking at, explain it to them.' }
   ];
   document.getElementById('chatMessages').innerHTML = '<div class="chat-bubble assistant">Bonjour! I am your CEFR French Tutor. How can I help you today?</div>';
-  localStorage.removeItem('chatHistory');
   if (currentContextName) {
       window.clearChatContext(); // Also clear the context just in case
   }
@@ -151,7 +150,6 @@ function saveChatSettings() {
   const keyInput = document.getElementById('openRouterKeyInput');
   saveOpenRouterKey(keyInput.value);
   saveOpenRouterModel(selectedModelValue);
-  updateActiveModelHeaderLabel();
   closeChatSettings();
 }
 
@@ -292,7 +290,6 @@ async function handleChatSend() {
   // Add user msg
   renderMessage('user', text);
   chatHistory.push({ role: 'user', content: text });
-  saveChatHistoryToStorage();
   
   input.value = '';
   btn.disabled = true;
@@ -406,7 +403,6 @@ async function handleChatSend() {
     }
     
     chatHistory.push({ role: 'assistant', content: fullResponse });
-    saveChatHistoryToStorage();
   } catch (error) {
     if (assistantBubble.innerHTML === "" || assistantBubble.innerHTML.includes("Typing...")) {
       assistantBubble.innerHTML = `⚠️ Error: ${error.message}`;
@@ -434,37 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  
-  // Load chat history from localStorage
-  loadChatHistoryFromStorage();
-
-  // Initialize active model label in header
-  updateActiveModelHeaderLabel();
 });
-
-function saveChatHistoryToStorage() {
-  const historyToSave = chatHistory.filter(m => m.role !== 'system');
-  localStorage.setItem('chatHistory', JSON.stringify(historyToSave));
-}
-
-function loadChatHistoryFromStorage() {
-  const saved = localStorage.getItem('chatHistory');
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.length > 0) {
-        // Clear default welcome message
-        document.getElementById('chatMessages').innerHTML = '';
-        parsed.forEach(msg => {
-          chatHistory.push(msg);
-          renderMessage(msg.role, msg.content);
-        });
-      }
-    } catch (e) {
-      console.error("Failed to load chat history:", e);
-    }
-  }
-}
 
 function detectLanguage(text) {
   const clean = text.toLowerCase();
@@ -481,15 +447,4 @@ function detectLanguage(text) {
   // Fallback: search for English characters/questions
   const hasEnglishIndicator = /\b(what|how|why|where|who|are|is|does|did|can|explain|lexicon|dataset|concept|concepts|level)\b/i.test(clean);
   return hasEnglishIndicator ? 'en' : 'fr';
-}
-
-function updateActiveModelHeaderLabel() {
-  const label = document.getElementById('activeModelLabel');
-  if (label) {
-    const currentModel = getOpenRouterModel() || 'openai/gpt-4o-mini';
-    const parts = currentModel.split('/');
-    const modelName = parts[parts.length - 1];
-    label.textContent = modelName;
-    label.title = currentModel; // Full path on hover
-  }
 }
