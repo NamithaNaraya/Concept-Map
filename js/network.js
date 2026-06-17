@@ -1,137 +1,232 @@
 const CANVAS_MAX_NODES = 400; // cap for performance
 
+
 function buildNetworkData() {
   const canvas = document.getElementById('networkCanvas');
-  // Ensure canvas sized before placing nodes so initial positions use actual viewport
   resizeNetCanvas();
-  // Reset view so layout starts from a neutral, centered state
   NET.zoom = 1; NET.panX = 0; NET.panY = 0;
-  const fr = filteredRecords().slice(0, CANVAS_MAX_NODES);
-  const nodeKeys = new Set(fr.map(r=>r.chKey+':'+r.recKey));
-
-  // Use canvas dimensions for initial placement (with safe margins)
-  const W = Math.max(600, canvas.width);
-  const H = Math.max(400, canvas.height);
-  // Spread nodes in a loose radial distribution around canvas center to avoid linear clusters
-  const N = fr.length || 1;
-  const cx = W / 2, cy = H / 2;
-  NET.nodes = fr.map((r, i) => {
-    const angle = (i / N) * Math.PI * 2;
-    const radius = 60 + Math.random() * (Math.min(W, H) / 3);
-    return {
-      key: r.chKey+':'+r.recKey,
-      chKey: r.chKey,
-      recKey: r.recKey,
-      label: r.denomination_canonical || r.section_code,
-      chapter: r.chapter,
-      kind: r.kind,
-      present_in_books: r.present_in_books,
-      x: cx + Math.cos(angle) * radius,
-      y: cy + Math.sin(angle) * radius,
-      vx: 0, vy: 0,
-      pinned: false,
-      link_count: r.link_count,
-    };
-  });
-
-  const nodeIndex = {};
-  NET.nodes.forEach((n,i) => nodeIndex[n.key] = i);
-
-  NET.edges = [];
-  const seenEdge = new Set();
   
-  // Determine which books are currently selected
+  // Handle Load More Button for Words
+  let loadMoreBtn = document.getElementById('loadMoreWordsBtn');
+  if(!loadMoreBtn) {
+    loadMoreBtn = document.createElement('button');
+    loadMoreBtn.id = 'loadMoreWordsBtn';
+    loadMoreBtn.className = 'btn-glow-primary';
+    loadMoreBtn.style.position = 'absolute';
+    loadMoreBtn.style.bottom = '20px';
+    loadMoreBtn.style.right = '20px';
+    loadMoreBtn.style.zIndex = '100';
+    loadMoreBtn.innerText = 'Fetch More Words';
+    loadMoreBtn.onclick = () => {
+      networkWordLimit += 200;
+      buildNetworkData();
+    };
+    document.getElementById('networkView').appendChild(loadMoreBtn);
+  }
+  loadMoreBtn.style.display = (networkNodeType === 'word') ? 'block' : 'none';
+
+  NET.nodes = [];
+  NET.edges = [];
+  
+  const fr = filteredRecords();
   const activeBooks = filters.levels.has('_all4') ? ['A1','A2','B1','B2'] : Array.from(filters.levels);
 
-  fr.forEach(r => {
-    const tgtKey = r.chKey + ':' + r.recKey;
-    const raw = r._raw;
-    if(!raw) return;
+  const W = Math.max(600, canvas.width);
+  const H = Math.max(400, canvas.height);
+  const cx = W / 2, cy = H / 2;
 
-    // Helper to process grouped incoming edges
-    const addIncomingEdge = (edgeLevels, srcCh, srcKey, type) => {
-      // Restrictive Edge Filtering: only show edge if it exists in one of the active filter levels
-      if(activeBooks.length > 0) {
-        const hasVisibleLevel = edgeLevels.some(l => activeBooks.includes(l));
-        if(!hasVisibleLevel) return;
-      }
+  if (networkNodeType === 'concept') {
+    const frSliced = fr.slice(0, CANVAS_MAX_NODES);
+    const nodeKeys = new Set(frSliced.map(r=>r.chKey+':'+r.recKey));
+    const N = frSliced.length || 1;
+    NET.nodes = frSliced.map((r, i) => {
+      const angle = (i / N) * Math.PI * 2;
+      const radius = 60 + Math.random() * (Math.min(W, H) / 3);
+      return {
+        key: r.chKey+':'+r.recKey, chKey: r.chKey, recKey: r.recKey,
+        label: r.denomination_canonical || r.section_code,
+        chapter: r.chapter, kind: r.kind, present_in_books: r.present_in_books,
+        asterisked: r.anyAsterisk, // <--- New for asterisk feature
+        x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius,
+        vx: 0, vy: 0, pinned: false, link_count: r.link_count, size: 10
+      };
+    });
 
-      const fullSrcKey = 'ch' + srcCh + ':' + srcKey;
-      
-      // Both ends must be visible in the current network view
-      if(nodeKeys.has(fullSrcKey)) {
-        const edgeId = [fullSrcKey, tgtKey].sort().join('>>');
-        if(!seenEdge.has(edgeId)) {
-          seenEdge.add(edgeId);
-          NET.edges.push({
-            s: nodeIndex[fullSrcKey],
-            t: nodeIndex[tgtKey],
-            type: type,
-            levels: edgeLevels
+    const nodeIndex = {};
+    NET.nodes.forEach((n,i) => nodeIndex[n.key] = i);
+    const seenEdge = new Set();
+
+    frSliced.forEach(r => {
+      const tgtKey = r.chKey + ':' + r.recKey;
+      const raw = r._raw;
+      if(!raw) return;
+
+      const addIncomingEdge = (edgeLevels, srcCh, srcKey, type) => {
+        if(activeBooks.length > 0 && !edgeLevels.some(l => activeBooks.includes(l))) return;
+        const fullSrcKey = 'ch' + srcCh + ':' + srcKey;
+        if(nodeKeys.has(fullSrcKey)) {
+          const edgeId = [fullSrcKey, tgtKey].sort().join('>>');
+          if(!seenEdge.has(edgeId)) {
+            seenEdge.add(edgeId);
+            NET.edges.push({ s: nodeIndex[fullSrcKey], t: nodeIndex[tgtKey], type: type, levels: edgeLevels, weight: 1 });
+          }
+        }
+      };
+
+      const gatherLinks = (perBookField, defaultType) => {
+        const field = raw[perBookField] || {};
+        const grouped = {};
+        for(const book of Object.keys(field)) {
+          if(!field[book]) continue;
+          field[book].forEach(link => {
+            const sKey = link.source_row_id_canonical || link.source_concept_key || link.source_section_code;
+            if(!sKey) return;
+            const gKey = link.source_chapter + '::' + sKey + '::' + (link.type || defaultType);
+            if(!grouped[gKey]) grouped[gKey] = { sCh: link.source_chapter, sKey, sType: (link.type || defaultType), levels: new Set() };
+            grouped[gKey].levels.add(book);
           });
         }
-      }
-    };
+        for(const gKey in grouped) addIncomingEdge(Array.from(grouped[gKey].levels), grouped[gKey].sCh, grouped[gKey].sKey, grouped[gKey].sType);
+      };
 
-    // Helper to gather references from a per_book field
-    const gatherLinks = (perBookField, defaultType) => {
-      const field = raw[perBookField] || {};
-      const grouped = {};
-      
-      for(const book of Object.keys(field)) {
-        if(!field[book]) continue;
-        field[book].forEach(link => {
-          // Fallback through the 3 possible identifiers the guide mentions
-          const sKey = link.source_row_id_canonical || link.source_concept_key || link.source_section_code;
-          if(!sKey) return;
-          const sCh = link.source_chapter;
-          const sType = link.type || defaultType;
-          
-          const gKey = sCh + '::' + sKey + '::' + sType;
-          if(!grouped[gKey]) grouped[gKey] = { sCh, sKey, sType, levels: new Set() };
-          grouped[gKey].levels.add(book);
+      gatherLinks('linked_from_per_book', 'link');
+      gatherLinks('cefr_descriptors_pointing_to_this_per_book', 'cefr_xref');
+      gatherLinks('orthography_rules_applying_to_this_per_book', 'ortho_xref');
+      gatherLinks('sociocultural_notes_referencing_this_per_book', 'socio_xref');
+      gatherLinks('learner_strategies_referencing_this_per_book', 'strategy_xref');
+    });
+
+  } else if (networkNodeType === 'chapter') {
+    // CHAPTER MODE
+    const chapters = new Set();
+    fr.forEach(r => chapters.add(r.chapter));
+    const chArr = Array.from(chapters);
+    const N = chArr.length || 1;
+    
+    NET.nodes = chArr.map((ch, i) => {
+      const angle = (i / N) * Math.PI * 2;
+      const radius = 100;
+      return {
+        key: 'ch'+ch, label: 'Chapter '+ch, chapter: ch, present_in_books: [],
+        x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius,
+        vx: 0, vy: 0, pinned: false, size: 25, link_count: 0
+      };
+    });
+    
+    const nodeIndex = {};
+    NET.nodes.forEach((n,i) => nodeIndex[n.key] = i);
+    const edgeCounts = {};
+
+    fr.forEach(r => {
+      const tgtCh = r.chapter;
+      const raw = r._raw;
+      if(!raw) return;
+
+      const tallyLink = (perBookField) => {
+        const field = raw[perBookField] || {};
+        for(const book of Object.keys(field)) {
+          if(!field[book]) continue;
+          if(activeBooks.length > 0 && !activeBooks.includes(book)) continue;
+          field[book].forEach(link => {
+            const srcCh = link.source_chapter;
+            if (srcCh && chapters.has(srcCh) && srcCh !== tgtCh) {
+              const edgeId = [srcCh, tgtCh].sort().join('-');
+              edgeCounts[edgeId] = (edgeCounts[edgeId] || 0) + 1;
+            }
+          });
+        }
+      };
+      tallyLink('linked_from_per_book');
+      tallyLink('cefr_descriptors_pointing_to_this_per_book');
+      tallyLink('orthography_rules_applying_to_this_per_book');
+      tallyLink('sociocultural_notes_referencing_this_per_book');
+      tallyLink('learner_strategies_referencing_this_per_book');
+    });
+
+    for(const edgeId in edgeCounts) {
+      const [c1, c2] = edgeId.split('-');
+      NET.edges.push({ s: nodeIndex['ch'+c1], t: nodeIndex['ch'+c2], weight: edgeCounts[edgeId] });
+      NET.nodes[nodeIndex['ch'+c1]].link_count += edgeCounts[edgeId];
+      NET.nodes[nodeIndex['ch'+c2]].link_count += edgeCounts[edgeId];
+    }
+
+  } else if (networkNodeType === 'level') {
+    // LEVEL MODE
+    const lvls = ['A1','A2','B1','B2'].filter(l => activeBooks.length===0 || activeBooks.includes(l));
+    const N = lvls.length || 1;
+    NET.nodes = lvls.map((l, i) => {
+      const angle = (i / N) * Math.PI * 2;
+      return {
+        key: l, label: 'Level '+l, chapter: 0, present_in_books: [l],
+        x: cx + Math.cos(angle) * 100, y: cy + Math.sin(angle) * 100,
+        vx: 0, vy: 0, pinned: false, size: 30, link_count: 0
+      };
+    });
+    
+    // (Edges for levels would require tracking which specific level a cross-reference came from vs went to.
+    // For simplicity, we just draw the 4 level nodes disconnected or connected linearly as progression).
+    const nodeIndex = {};
+    NET.nodes.forEach((n,i) => nodeIndex[n.key] = i);
+    for(let i=0; i<lvls.length-1; i++) {
+      NET.edges.push({ s: nodeIndex[lvls[i]], t: nodeIndex[lvls[i+1]], weight: 5 });
+    }
+
+  } else if (networkNodeType === 'word') {
+    // WORD MODE
+    let words = [];
+    fr.forEach(r => {
+      const raw = r._raw;
+      if(!raw) return;
+      const real = raw.realisations_per_book;
+      if(!real) return;
+      for(const book of Object.keys(real)) {
+        if(!real[book]) continue;
+        if(activeBooks.length > 0 && !activeBooks.includes(book)) continue;
+        real[book].forEach(item => {
+          words.push({ text: item.text, chapter: r.chapter, level: book, parentKey: r.chKey+':'+r.recKey });
         });
       }
-      
-      for(const gKey in grouped) {
-        const g = grouped[gKey];
-        addIncomingEdge(Array.from(g.levels), g.sCh, g.sKey, g.sType);
-      }
-    };
+    });
 
-    // Extract exact source keys from all 5 typed incoming fields
-    gatherLinks('linked_from_per_book', 'link');
-    gatherLinks('cefr_descriptors_pointing_to_this_per_book', 'cefr_xref');
-    gatherLinks('orthography_rules_applying_to_this_per_book', 'ortho_xref');
-    gatherLinks('sociocultural_notes_referencing_this_per_book', 'socio_xref');
-    gatherLinks('learner_strategies_referencing_this_per_book', 'strategy_xref');
+    // Deduplicate and limit
+    const uniqueWords = Array.from(new Set(words.map(w=>w.text))).slice(0, networkWordLimit);
+    if(words.length > networkWordLimit) {
+        if(loadMoreBtn) loadMoreBtn.innerText = `Fetch More Words (${uniqueWords.length} / ${words.length})`;
+    } else {
+        if(loadMoreBtn) loadMoreBtn.style.display = 'none';
+    }
 
-    // Also extract outgoing links to ensure nothing is missed
-    const gatherOutgoingLinks = (perBookField, defaultType) => {
-      const field = raw[perBookField] || {};
-      const grouped = {};
-      for(const book of Object.keys(field)) {
-        if(!field[book]) continue;
-        field[book].forEach(link => {
-          const tKey = link.target_row_id_canonical || link.target_concept_key || link.target_section_code;
-          if(!tKey) return;
-          const tCh = link.target_chapter;
-          const tType = link.type || defaultType;
-          const gKey = tCh + '::' + tKey + '::' + tType;
-          if(!grouped[gKey]) grouped[gKey] = { tCh, tKey, tType, levels: new Set() };
-          grouped[gKey].levels.add(book);
-        });
-      }
-      for(const gKey in grouped) {
-        const g = grouped[gKey];
-        // Swapping target as source to reuse the addIncomingEdge logic
-        addIncomingEdge(Array.from(g.levels), g.tCh, g.tKey, g.tType);
-      }
-    };
-    gatherOutgoingLinks('links_to_concepts_per_book', 'link');
-  });
+    const N = uniqueWords.length || 1;
+    NET.nodes = uniqueWords.map((txt, i) => {
+      const angle = (i / N) * Math.PI * 2;
+      const radius = 100 + Math.random() * (Math.min(W, H) / 2);
+      const wData = words.find(w=>w.text === txt);
+      return {
+        key: 'w_'+i, label: txt, chapter: wData.chapter, present_in_books: [wData.level], parentKey: wData.parentKey,
+        x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius,
+        vx: 0, vy: 0, pinned: false, size: 8, link_count: 0
+      };
+    });
 
-  // Build legend
+    // Connect words that share the same parent concept
+    const nodeIndex = {};
+    NET.nodes.forEach((n,i) => nodeIndex[n.key] = i);
+    const wordsByConcept = {};
+    NET.nodes.forEach(n => {
+      if(!wordsByConcept[n.parentKey]) wordsByConcept[n.parentKey] = [];
+      wordsByConcept[n.parentKey].push(n);
+    });
+
+    for(const concept in wordsByConcept) {
+      const siblings = wordsByConcept[concept];
+      for(let i=0; i<siblings.length; i++) {
+        for(let j=i+1; j<siblings.length; j++) {
+           NET.edges.push({ s: nodeIndex[siblings[i].key], t: nodeIndex[siblings[j].key], weight: 1 });
+        }
+      }
+    }
+  }
+
   buildNetLegend();
   resizeNetCanvas();
   runLayout();
@@ -309,26 +404,29 @@ function redrawNet() {
       const isSelEdge = NET.selected && (a.key === NET.selected || b.key === NET.selected);
 
       ctx.beginPath();
+      
+      const edgeThick = e.weight ? Math.min(10, e.weight * 1.5) : 2.5;
       if(onPath) {
         ctx.strokeStyle = '#f97316';
-        ctx.lineWidth = 4.0 / zoom;
+        ctx.lineWidth = Math.max(4.0, edgeThick + 2) / zoom;
         ctx.globalAlpha = 1;
       } else if (isHovEdge) {
         ctx.strokeStyle = '#3b6fd4';
-        ctx.lineWidth = 3.0 / zoom;
+        ctx.lineWidth = Math.max(3.0, edgeThick + 1) / zoom;
         ctx.globalAlpha = 0.9;
       } else if (isSelEdge) {
         ctx.strokeStyle = '#192233';
-        ctx.lineWidth = 3.5 / zoom;
+        ctx.lineWidth = Math.max(3.5, edgeThick + 1) / zoom;
         ctx.globalAlpha = 0.85;
       } else {
         ctx.strokeStyle = 'rgba(148,163,184,0.7)';
-        ctx.lineWidth = 2.5 / zoom;
+        ctx.lineWidth = edgeThick / zoom;
         let alpha = 1;
         if (pathHighlight.size > 0) alpha = 0.1;
         else if (NET.selected) alpha = 0.1;
         ctx.globalAlpha = alpha;
       }
+
       
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
@@ -351,18 +449,30 @@ function redrawNet() {
     if (pathHighlight.size > 0) dimmed = !onPath;
     else if (NET.selected) dimmed = !isSel && !selNeighbors.has(n.key);
 
-    ctx.globalAlpha = dimmed ? 0.12 : 1;
-
-    // Solid fill
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, Math.PI*2);
-    ctx.fillStyle = chColor;
-    ctx.fill();
     
-    // Crisp border
-    ctx.lineWidth = isSel ? 3 : 1.5;
-    ctx.strokeStyle = isSel ? '#192233' : '#ffffff';
-    ctx.stroke();
+    ctx.globalAlpha = dimmed ? 0.12 : 1;
+    const dynamicR = n.size || r; // Use specific node size if defined (Chapters/Levels)
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, dynamicR, 0, Math.PI*2);
+    
+    // ASTERISK FEATURE: Draw asterisked concepts as hollow circles
+    if (n.asterisked) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = isSel ? 4 : 2;
+      ctx.strokeStyle = chColor;
+      ctx.setLineDash([4, 3]); // Dashed border
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset
+    } else {
+      ctx.fillStyle = (networkNodeType === 'level') ? LEVEL_COLOR[n.key] : chColor;
+      ctx.fill();
+      ctx.lineWidth = isSel ? 3 : 1.5;
+      ctx.strokeStyle = isSel ? '#192233' : '#ffffff';
+      ctx.stroke();
+    }
+
 
     // Extra highlight for hover/path selection
     if(isPathSel || (isSel && pathMode)) {
@@ -479,24 +589,27 @@ netCanvas.addEventListener('mousedown', e => {
   }
 });
 netCanvas.addEventListener('mousemove', e => {
-  const pos = screenToWorld(e.clientX, e.clientY);
   if(NET.dragging) {
+    const pos = screenToWorld(e.clientX, e.clientY);
     NET.dragging.x = pos.x;
     NET.dragging.y = pos.y;
     redrawNet();
-  } else if(NET.panning) {
-    NET.panX += (e.clientX - NET.lastMx);
-    NET.panY += (e.clientY - NET.lastMy);
+    return;
+  }
+  if(NET.panning) {
+    NET.panX += e.clientX - NET.lastMx;
+    NET.panY += e.clientY - NET.lastMy;
     NET.lastMx = e.clientX;
     NET.lastMy = e.clientY;
     redrawNet();
   } else {
+    const pos = screenToWorld(e.clientX, e.clientY);
     const hit = hitTest(pos.x, pos.y);
     if(hit !== NET.hovered) {
       NET.hovered = hit;
       redrawNet();
       if(hit) {
-        showTooltip(e.clientX, e.clientY, `<strong>${hit.label}</strong><br>${CHAPTER_TITLES['ch'+hit.chapter]} · ${hit.kind} · ${hit.present_in_books.join(', ')}<br>Links: ${hit.link_count}`);
+        showTooltip(e.clientX, e.clientY, `<strong>${hit.label}</strong><br>${CHAPTER_TITLES['ch'+hit.chapter]} · ${hit.kind||networkNodeType} · ${(hit.present_in_books||[]).join(', ')}<br>Links: ${hit.link_count||0}`);
       } else {
         hideTooltip();
       }
@@ -516,9 +629,15 @@ netCanvas.addEventListener('click', e => {
   const hit = hitTest(pos.x, pos.y);
   if(hit && !pathMode) {
     NET.selected = hit.key;
-    const rawC = ROOT.concepts[hit.chKey]?.[hit.recKey];
-    const rec = RECORDS.find(r=>r.chKey===hit.chKey && r.recKey===hit.recKey);
-    if(rec && rawC) showNodeInfo(rec, rawC);
+    if (networkNodeType === 'concept') {
+      const rawC = ROOT.concepts[hit.chKey]?.[hit.recKey];
+      const rec = RECORDS.find(r=>r.chKey===hit.chKey && r.recKey===hit.recKey);
+      if(rec && rawC) showNodeInfo(rec, rawC);
+    } else {
+      if (typeof showAggregateNodeInfo === 'function') {
+        showAggregateNodeInfo(hit);
+      }
+    }
     redrawNet();
   } else if (!hit && !pathMode) {
     resetNetworkView();
@@ -558,7 +677,7 @@ function hitTest(wx, wy) {
   const nodeSize = parseFloat(document.getElementById('nodeSizeRange')?.value || 10);
   for(let i = NET.nodes.length-1; i>=0; i--) {
     const n = NET.nodes[i];
-    const r = nodeSize;
+    const r = n.size || nodeSize;
     const dx = wx-n.x, dy = wy-n.y;
     if(dx*dx+dy*dy <= r*r) return n;
   }

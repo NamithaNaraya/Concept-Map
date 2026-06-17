@@ -59,6 +59,8 @@ let NET = { nodes:[], edges:[], sim:null, zoom:1, panX:0, panY:0, dragging:null,
 let pathMode = null; // 'from' | 'to'
 let pathFrom = null, pathTo = null;
 let pathHighlight = new Set(); // set of node keys on path
+let networkNodeType = 'concept'; // 'concept', 'chapter', 'level', 'word'
+let networkWordLimit = 200; // Pagination limit for Words mode
 
 // Radial
 let radialMode = "chapter";

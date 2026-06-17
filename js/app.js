@@ -12,6 +12,9 @@ window.switchTab = function(tab) {
   document.getElementById(tab+'View').classList.add('active');
   activeTab = tab;
 
+  const nodeConfig = document.getElementById('networkNodeConfig');
+  if (nodeConfig) nodeConfig.style.display = tab === 'network' ? 'block' : 'none';
+
   if(tab === 'network') {
     setTimeout(()=>{ resizeNetCanvas(); buildNetworkData(); }, 50);
   } else if(tab === 'radial') {
@@ -64,4 +67,3 @@ function showHelp() { document.getElementById('helpModal').classList.add('show')
 function closeHelp() { document.getElementById('helpModal').classList.remove('show'); }
 document.getElementById('helpModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeHelp(); });
 document.addEventListener('keydown', e => { if(e.key==='Escape') { closeHelp(); closeNodeInfo(); } });
-

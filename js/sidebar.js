@@ -274,3 +274,8 @@ function updateResultCount() {
   const sb = document.getElementById('statusBadgeCount');
   if(sb) sb.textContent = fr.length;
 }
+function changeNetworkNodeType(type) {
+  networkNodeType = type;
+  networkWordLimit = 200; // reset limit when switching
+  buildNetworkData();
+}
